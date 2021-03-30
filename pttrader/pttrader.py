@@ -1,5 +1,6 @@
 import datetime as dt
 import time
+from random import randint
 
 # TODO лучше сделать кошелек трейдера отдельным csv файлом
 TRADER_DEPOSIT = {"USD": 1000.,
@@ -8,6 +9,35 @@ TRADER_DEPOSIT = {"USD": 1000.,
                   }
 
 NEW_ORDER_LIST = []
+TRADING_HISTORY_LIST = []
+
+def create_order_query():
+    """
+    Get input parameters from trader
+    :return:
+    """
+    print("Enter operation type: Buy or Sell")
+    operation_type = str(input())
+    print("Enter ticker name:")
+    ticker = str(input())
+    if operation_type == "Buy":
+        print("Enter price for Buy operation:")
+        buy_order_price = float(input())
+    elif operation_type == "Sell":
+        print("Enter price for Sell operation:")
+        sell_order_price = float(input())
+
+    print("Enter amount in lot's:")
+    amount = int(input())
+    created_at = dt.datetime.utcnow()
+
+    if operation_type == "Buy":
+        order_query = [operation_type, ticker, buy_order_price, amount, created_at]
+    elif operation_type == "Sell":
+        order_query = [operation_type, ticker, sell_order_price, amount, created_at]
+
+    print("You create order query: ", order_query)
+    return order_query
 
 
 def trader_deposit_subtraction(currency, buy_order_price, amount):
@@ -22,7 +52,7 @@ def trader_deposit_subtraction(currency, buy_order_price, amount):
 
     TRADER_DEPOSIT[currency] -= buy_order_price * amount
 
-    print("return ", TRADER_DEPOSIT)
+    print("Trader deposit: ", TRADER_DEPOSIT)
     pass
 
 
@@ -44,11 +74,12 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     pass
 
 
-def order_buy_limit(ticker="UWGN", currency="RUR", buy_order_price=110.3, amount=1, created_at=dt.datetime.utcnow()):
+def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR", created_at=dt.datetime.utcnow()):
     """
     This function make order to buy amount of stocks by ticker name
     specified at buy_order_price and wait until market price of stock ticker reach
     buy_order_price
+    :param operation_type:
     :param currency:
     :param created_at:
     :param ticker: ticker name
@@ -57,17 +88,23 @@ def order_buy_limit(ticker="UWGN", currency="RUR", buy_order_price=110.3, amount
     :return: order_id
     """
 
-    order_data = [ticker, buy_order_price, amount, created_at]
-
-    print("You place limit buy order ", ticker, "amount shares (!lots) is ", amount, "by price ",
+    operation_type = order_data[0]
+    ticker = order_data[1]
+    buy_order_price = order_data[2]
+    amount = order_data[3]
+    currency = "RUR"
+    created_at = order_data[4]
+    buy_order_data = [operation_type, ticker, buy_order_price, amount, currency, created_at]
+    print("You place limit buy order for: ", ticker, ", amount lot is: ", amount, ", by price: ",
           buy_order_price)
     trader_deposit_subtraction(currency, buy_order_price, amount)
     time.sleep(1)
-    return order_data
+    return buy_order_data
 
 
 def order_sell_limit(ticker="UWGN", currency="RUR", sell_order_price=110.3, amount=1, created_at=dt.datetime.utcnow()):
     """
+
     This function make order to sell amount of stocks by ticker name
     specified at sell_order_price and wait until market price of stock ticker reach
     sell_order_price
@@ -88,17 +125,18 @@ def order_sell_limit(ticker="UWGN", currency="RUR", sell_order_price=110.3, amou
     return order_data
 
 
-def order_place_to_market(order_data):
+def order_place_to_market(type_order_data):
     """
     Create order by individual id returned from buy_order_limit foo
+    :param type_order_data:
     :param order_data:
     :param order_id:
     :return:
     """
     global NEW_ORDER_LIST
 
-    NEW_ORDER_LIST.append(order_data)
-    print("Order is placed", order_data)
+    NEW_ORDER_LIST.append(type_order_data)
+    print("Order is placed", type_order_data)
     print("return ", NEW_ORDER_LIST)
     pass
 
@@ -108,7 +146,7 @@ def get_ticker_price(ticker):
     This function get data from somewhere api and return ticker price
 
     """
-    current_price = 120.
+    current_price = randint(100,150)
     print("Current price for ticker ", ticker, "price is ", current_price)
     return current_price  # return current price of the ticker
 
@@ -122,39 +160,66 @@ def check_order_status(order):
     :param order:
     :return: True or False
     """
-    ticker = order[0]
+    operation_type = order[0]
+    ticker = order[1]
     market_price = get_ticker_price(ticker)
-    order_price = order[1]
-    order_status = False
+    order_price = order[2]
+    flag = False
     # condition for buy order
     print("Order status checking")
-    if market_price >= order_price:
-        print("mp>=op")
-        order_status = True
+    if operation_type == "Buy" and market_price <= order_price:
+        print("Market price <= Order price condition for Buy is True")
+        order_done_at = dt.datetime.utcnow()
+        flag = True
+        order_status = [flag, order_done_at]
         return order_status
 
-    pass
+    elif operation_type == "Sell" and market_price >= order_price:
+        print("Market price >= Order price condition for Sell is True")
+        order_done_at = dt.datetime.utcnow()
+        flag = True
+        order_status = [flag, order_done_at]
+        return order_status
+    else:
+        print("Wrong condition")
+        flag = False
+        order_done_at = dt.datetime.utcnow()
+        order_status = [flag, order_done_at]
+        return order_status
+
+
+
 
 
 def main():
     global NEW_ORDER_LIST
-    #print(NEW_ORDER_LIST)
+    global TRADING_HISTORY_LIST
+    # print(NEW_ORDER_LIST)
     while NEW_ORDER_LIST:
+        # make pause for 1 min for checking price changes
+        print("Sleep 5 sec")
+        time.sleep(5)
         for order in NEW_ORDER_LIST:
             print(order)
             order_status = check_order_status(order)
-            if order_status:
+            if order_status[0]:
                 print("Order ", order, "status is True", )
+
+                done_order = [order, order_status[1]]
+                TRADING_HISTORY_LIST.append(done_order)
+
                 NEW_ORDER_LIST.remove(order)
                 print(NEW_ORDER_LIST)
 
             else:
-                print("Something goes wrong")
+                print("Cheking...")
         if not NEW_ORDER_LIST:
-            print("There are no new orders ",NEW_ORDER_LIST)
+            print("There are no new orders ", NEW_ORDER_LIST)
+            print("Orders history here: ", TRADING_HISTORY_LIST)
 
-order_place_to_market(order_buy_limit())
-order_place_to_market(order_buy_limit())
-order_place_to_market(order_buy_limit())
-#order_place_to_market(order_sell_limit())
+
+order_data = create_order_query()
+order_place_to_market(order_buy_limit(order_data))
+
+# order_place_to_market(order_sell_limit())
 main()
