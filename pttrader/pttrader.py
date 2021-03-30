@@ -11,6 +11,7 @@ TRADER_DEPOSIT = {"USD": 1000.,
 NEW_ORDER_LIST = []
 TRADING_HISTORY_LIST = []
 
+
 def create_order_query():
     """
     Get input parameters from trader
@@ -23,21 +24,27 @@ def create_order_query():
     if operation_type == "Buy":
         print("Enter price for Buy operation:")
         buy_order_price = float(input())
+        print("Enter amount in lot's:")
+        amount = int(input())
+        created_at = dt.datetime.utcnow()
+        order_query = [operation_type, ticker, buy_order_price, amount, created_at]
+        print("You create order query: ", order_query)
+        return order_query
+
     elif operation_type == "Sell":
         print("Enter price for Sell operation:")
         sell_order_price = float(input())
-
-    print("Enter amount in lot's:")
-    amount = int(input())
-    created_at = dt.datetime.utcnow()
-
-    if operation_type == "Buy":
-        order_query = [operation_type, ticker, buy_order_price, amount, created_at]
-    elif operation_type == "Sell":
+        print("Enter amount in lot's:")
+        amount = int(input())
+        created_at = dt.datetime.utcnow()
         order_query = [operation_type, ticker, sell_order_price, amount, created_at]
+        print("You create order query: ", order_query)
+        return order_query
 
-    print("You create order query: ", order_query)
-    return order_query
+    else:
+        print("You do smth wrong")
+
+
 
 
 def trader_deposit_subtraction(currency, buy_order_price, amount):
@@ -74,7 +81,8 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     pass
 
 
-def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR", created_at=dt.datetime.utcnow()):
+def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR",
+                    created_at=dt.datetime.utcnow()):
     """
     This function make order to buy amount of stocks by ticker name
     specified at buy_order_price and wait until market price of stock ticker reach
@@ -146,7 +154,7 @@ def get_ticker_price(ticker):
     This function get data from somewhere api and return ticker price
 
     """
-    current_price = randint(100,150)
+    current_price = randint(100, 150)
     print("Current price for ticker ", ticker, "price is ", current_price)
     return current_price  # return current price of the ticker
 
@@ -186,9 +194,6 @@ def check_order_status(order):
         order_done_at = dt.datetime.utcnow()
         order_status = [flag, order_done_at]
         return order_status
-
-
-
 
 
 def main():
