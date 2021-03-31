@@ -2,7 +2,7 @@ import datetime as dt
 import time
 from random import randint
 
-# TODO лучше сделать кошелек трейдера отдельным csv файлом
+# TODO make trader deposit in csv file
 TRADER_DEPOSIT = {"USD": 1000.,
                   "EUR": 1000.,
                   "RUR": 10000.,
@@ -14,8 +14,14 @@ TRADING_HISTORY_LIST = []
 
 def create_order_query():
     """
-    Get input parameters from trader
-    :return:
+    Get input parameters from trader:
+    operation_type
+    ticker
+    buy_order_price
+    sell_order_price
+    amount
+    created_at
+    :return: order query
     """
     print("Enter operation type: Buy or Sell")
     operation_type = str(input())
@@ -45,8 +51,6 @@ def create_order_query():
         print("You do smth wrong")
 
 
-
-
 def trader_deposit_subtraction(currency, buy_order_price, amount):
     """
     This function subtract money from trader deposit by amount * buy_order_price BEFORE order complete at market
@@ -59,7 +63,7 @@ def trader_deposit_subtraction(currency, buy_order_price, amount):
 
     TRADER_DEPOSIT[currency] -= buy_order_price * amount
 
-    print("Trader deposit: ", TRADER_DEPOSIT)
+    print("Trader deposit changed: ", TRADER_DEPOSIT)
     pass
 
 
@@ -73,11 +77,11 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     """
     global TRADER_DEPOSIT
 
-    # order status must be DONE or SOLD
+    # Before money will add to TRADER_DEPOSIT, order status must be DONE or SOLD
 
     TRADER_DEPOSIT[currency] += sell_order_price * amount
 
-    print("return ", TRADER_DEPOSIT)
+    print("Trader deposit changed: ", TRADER_DEPOSIT)
     pass
 
 
@@ -217,7 +221,7 @@ def main():
                 print(NEW_ORDER_LIST)
 
             else:
-                print("Cheking...")
+                print("Checking...")
         if not NEW_ORDER_LIST:
             print("There are no new orders ", NEW_ORDER_LIST)
             print("Orders history here: ", TRADING_HISTORY_LIST)
