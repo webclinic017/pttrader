@@ -1,0 +1,4 @@
+instrument,ticker,amount,price,date_time,operation,operation_id
+stock,AMD,200,65.4,02.04.2021 10:13,sell,435351234523
+stock,AAPL,100,123.5,02.04.2021 10:12,buy,25634123534
+currency,USDRUB_TOM,100,74.5,02.04.2021 10:10,buy,234242562352
