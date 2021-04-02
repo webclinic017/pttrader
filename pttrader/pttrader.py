@@ -200,7 +200,7 @@ def check_order_status(order):
         return order_status
 
 
-def main():
+def market_manager():
     global NEW_ORDER_LIST
     global TRADING_HISTORY_LIST
     # print(NEW_ORDER_LIST)
@@ -227,8 +227,10 @@ def main():
             print("Orders history here: ", TRADING_HISTORY_LIST)
 
 
-order_data = create_order_query()
-order_place_to_market(order_buy_limit(order_data))
+if __name__ == "__main__":
 
-# order_place_to_market(order_sell_limit())
-main()
+    order_data = create_order_query()
+    order_place_to_market(order_buy_limit(order_data))
+
+    # order_place_to_market(order_sell_limit())
+    market_manager()
