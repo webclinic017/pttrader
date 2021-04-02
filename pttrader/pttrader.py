@@ -64,7 +64,7 @@ def trader_deposit_subtraction(currency, buy_order_price, amount):
     TRADER_DEPOSIT[currency] -= buy_order_price * amount
 
     print("Trader deposit changed: ", TRADER_DEPOSIT)
-    pass
+    
 
 
 def trader_deposit_addition(currency, sell_order_price, amount):
@@ -82,7 +82,7 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     TRADER_DEPOSIT[currency] += sell_order_price * amount
 
     print("Trader deposit changed: ", TRADER_DEPOSIT)
-    pass
+    
 
 
 def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR",
@@ -150,7 +150,7 @@ def order_place_to_market(type_order_data):
     NEW_ORDER_LIST.append(type_order_data)
     print("Order is placed", type_order_data)
     print("return ", NEW_ORDER_LIST)
-    pass
+    
 
 
 def get_ticker_price(ticker):
@@ -232,5 +232,5 @@ if __name__ == "__main__":
     order_data = create_order_query()
     order_place_to_market(order_buy_limit(order_data))
 
-    # order_place_to_market(order_sell_limit())
+    
     market_manager()
