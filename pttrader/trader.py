@@ -1,5 +1,15 @@
 
 
+class Account:
+    """
+    Class Account contain personal information about Traider:
+    Login
+    Password
+    ID
+    """
+    pass
+
+
 class Wallet:
     """
     Class wallet that keep trader's money.
@@ -10,14 +20,6 @@ class Wallet:
     """
     pass
 
-class Account:
-    """
-    Class Account contain personal information about Traider:
-    Login
-    Password
-    ID
-    """
-    pass
 
 class Portfolio:
     """

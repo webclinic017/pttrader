@@ -2,6 +2,8 @@ import datetime as dt
 import time
 from random import randint
 
+import login
+
 # TODO make trader deposit in csv file
 TRADER_DEPOSIT = {"USD": 1000.,
                   "EUR": 1000.,
@@ -229,8 +231,7 @@ def market_manager():
 
 if __name__ == "__main__":
 
-    order_data = create_order_query()
-    order_place_to_market(order_buy_limit(order_data))
 
-    
-    market_manager()
+    userid = login.wait_logging()
+    print(userid)
+
