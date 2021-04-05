@@ -1,6 +1,6 @@
 import json
 from random import randint
-
+import trader
 
 def wait_logging():
     wait = True
@@ -20,10 +20,10 @@ def wait_logging():
                 print("Hello, ", account["login"]+"!")
                 #wait = False
                 # if exist return user ID
-                return account["ID"]
+                return account["account_id"]
             else:
                 pass
-        print(login, "doe's not exist.")
+        print(login, "does not exist.")
         print("Create new Login?")
         print("type: Yes or No")
         answer = str(input())
@@ -40,14 +40,16 @@ def wait_logging():
 def create_new_login(new_login):
     """
     :param: new_login Name
-    This function create new login and ID in traders_accounts.txt and append it to the end
+    This function create new login and account_id in traders_accounts.txt and append it to the end
     :return: traders_accounts.txt
     """
-
+    generate_new_id = randint(10000, 99999)  # random id generator
+    new_account = trader.Account(login=new_login,account_id=generate_new_id)
+    print(new_account.login)
     with open('traders_accounts.txt') as file:
         data = file.read()
     data = json.loads(data)
-    generate_new_id = randint(10000, 99999)  # random id generator
-    data.append({"login": new_login, "ID": generate_new_id})
+
+    data.append({"login": new_account.login, "account_id": new_account.account_id})
     with open('traders_accounts.txt', 'w') as file:
         file.write(json.dumps(data))

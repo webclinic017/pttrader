@@ -7,7 +7,10 @@ class Account:
     Password
     ID
     """
-    pass
+    def __init__(self, login, account_id):
+        self.login = login
+        self.account_id = account_id
+
 
 
 class Wallet:

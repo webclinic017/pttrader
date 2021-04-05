@@ -66,7 +66,6 @@ def trader_deposit_subtraction(currency, buy_order_price, amount):
     TRADER_DEPOSIT[currency] -= buy_order_price * amount
 
     print("Trader deposit changed: ", TRADER_DEPOSIT)
-    
 
 
 def trader_deposit_addition(currency, sell_order_price, amount):
@@ -84,7 +83,6 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     TRADER_DEPOSIT[currency] += sell_order_price * amount
 
     print("Trader deposit changed: ", TRADER_DEPOSIT)
-    
 
 
 def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR",
@@ -152,7 +150,6 @@ def order_place_to_market(type_order_data):
     NEW_ORDER_LIST.append(type_order_data)
     print("Order is placed", type_order_data)
     print("return ", NEW_ORDER_LIST)
-    
 
 
 def get_ticker_price(ticker):
@@ -230,8 +227,9 @@ def market_manager():
 
 
 if __name__ == "__main__":
-
-
     userid = login.wait_logging()
     print(userid)
+    # check if account_id have portfolio -> show portfolio status
+    # check if account_id have wallet -> show wallet status
 
+    # Wait for commands from trader
