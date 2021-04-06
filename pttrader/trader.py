@@ -1,4 +1,4 @@
-
+import pandas as pd
 
 class Account:
     """
@@ -33,4 +33,9 @@ class Portfolio:
      
      portfolio_history_example.csv
     """
-    pass
+    def __init__(self):
+        pass
+
+    def show():
+        data = pd.read_csv("portfolio_history_example.csv")
+        print(data)

@@ -3,6 +3,7 @@ import time
 from random import randint
 
 import login
+import trader
 
 # TODO make trader deposit in csv file
 TRADER_DEPOSIT = {"USD": 1000.,
@@ -230,6 +231,7 @@ if __name__ == "__main__":
     userid = login.wait_logging()
     print(userid)
     # check if account_id have portfolio -> show portfolio status
+    trader.Portfolio.show()
     # check if account_id have wallet -> show wallet status
 
     # Wait for commands from trader
