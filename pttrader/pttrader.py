@@ -4,6 +4,7 @@ from random import randint
 
 import login
 import trader
+import market
 
 # TODO make trader deposit in csv file
 TRADER_DEPOSIT = {"USD": 1000.,
@@ -158,7 +159,7 @@ def get_ticker_price(ticker):
     This function get data from somewhere api and return ticker price
 
     """
-    current_price = randint(100, 150)
+    current_price = market.get_stock_data(ticker)
     print("Current price for ticker ", ticker, "price is ", current_price)
     return current_price  # return current price of the ticker
 
@@ -228,12 +229,18 @@ def market_manager():
 
 
 if __name__ == "__main__":
+    # starting program
     userid = login.wait_logging()
-    print(userid)
+    print(userid) # TODO delete this
+    # main cycle begins
     # check if account_id have portfolio -> show portfolio status
     current_trader_portfolio = trader.Portfolio()
     current_trader_portfolio.show()
     # check if account_id have wallet -> show wallet status
     current_trader_wallet = trader.Wallet()
     current_trader_wallet.show()
+
+
     # Wait for commands from trader
+    #market.get_stock_data("UWGN")
+    get_ticker_price()

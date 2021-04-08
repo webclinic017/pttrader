@@ -2,6 +2,7 @@ import json
 from random import randint
 import trader
 
+
 def wait_logging():
     wait = True
 
