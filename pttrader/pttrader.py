@@ -5,54 +5,8 @@ from random import randint
 import login
 import trader
 import market
+import broker
 
-# TODO make trader deposit in csv file
-TRADER_DEPOSIT = {"USD": 1000.,
-                  "EUR": 1000.,
-                  "RUR": 10000.,
-                  }
-
-NEW_ORDER_LIST = []
-TRADING_HISTORY_LIST = []
-
-
-def create_order_query(operation_type):
-    """
-    Get input parameters from trader:
-    operation type: Buy or Sell from main cycle
-    ticker
-    buy_order_price
-    sell_order_price
-    amount
-    created_at
-    :return: order query
-    """
-
-
-    print("Enter ticker name:")
-    ticker = str(input())
-    if operation_type == "Buy":
-        print("Enter price for Buy operation:")
-        buy_order_price = float(input())
-        print("Enter amount in lot's:")
-        amount = int(input())
-        created_at = dt.datetime.utcnow()
-        order_query = [operation_type, ticker, buy_order_price, amount, created_at]
-        print("You create order query: ", order_query)
-        return order_query
-
-    elif operation_type == "Sell":
-        print("Enter price for Sell operation:")
-        sell_order_price = float(input())
-        print("Enter amount in lot's:")
-        amount = int(input())
-        created_at = dt.datetime.utcnow()
-        order_query = [operation_type, ticker, sell_order_price, amount, created_at]
-        print("You create order query: ", order_query)
-        return order_query
-
-    else:
-        print("You do smth wrong")
 
 
 def trader_deposit_subtraction(currency, buy_order_price, amount):
@@ -154,14 +108,7 @@ def order_place_to_market(type_order_data):
     print("return ", NEW_ORDER_LIST)
 
 
-def get_ticker_price(ticker):
-    """
-    This function get data from somewhere api and return ticker price
 
-    """
-    current_price = market.get_stock_data(ticker)
-    print("Current price for ticker ", ticker, "price is ", current_price)
-    return current_price  # return current price of the ticker
 
 
 def check_order_status(order):
@@ -175,7 +122,7 @@ def check_order_status(order):
     """
     operation_type = order[0]
     ticker = order[1]
-    market_price = get_ticker_price(ticker)
+    market_price = market.get_ticker_price(ticker)
     order_price = order[2]
     flag = False
     # condition for buy order
@@ -202,7 +149,6 @@ def check_order_status(order):
 
 
 def check_new_orders(new_order_list):
-
     for order in new_order_list:
         print(order)
         order_status = check_order_status(order)
@@ -222,11 +168,6 @@ def check_new_orders(new_order_list):
         print("Orders history here: ", TRADING_HISTORY_LIST)
 
 
-
-
-
-
-
 def market_manager(user_account_id):
     """
     This is main cycle
@@ -236,56 +177,65 @@ def market_manager(user_account_id):
     current_user_id = user_account_id
     user_logged_in = True
     print("Type: Help, to see available commands or hit Enter to pass")
-    user_input = input()
+    user_input = input(">>")
     if user_input == "":
         print("Passed")
     else:
         print("You type: ", user_input)
 
-    while user_logged_in: # waiting for user commands and checking orders status
-
+    while user_logged_in:  # waiting for user commands and checking orders status
 
         # there list of available user's commands:
         if user_input == "Help":
-            print("List of commands: \n"
+            print("List of commands: \n\n"
                   "buy \n"
                   "sell \n")
             # wait for user new input:
-            print("Type: available command or hit Enter to pass")
-            user_input = input()
+            print("Waiting for user command")
+            user_input = input(">>")
             if user_input == "":
-                print("Passed")
+                print("Waiting for user command")
+                user_input = input(">>")
             else:
                 print("You type: ", user_input)
+
         elif user_input == "":
             print("Waiting for user command")
             user_input = input(">>")
+        # buy command
         elif user_input == "buy":
-            create_order_query("Buy")
+            broker.create_order_query("Buy")
             print("Try to buy")
-        #check_user_input()
+            user_input = ""
+        # sell command
+        elif user_input == "sell":
+            broker.create_order_query("Sell")
+            print("Try to sell")
+            user_input = ""
+        # check_user_input()
+        else:
 
-
-        #check_new_orders()
-        time.sleep(5) # make pause for 5 sec for checking price changes
-        #print("Sleep 5 sec")
+            print("Waiting for user command, you in else branch")
+            user_input = input(">>")
+            # check_new_orders()
+            time.sleep(1)  # make pause for 5 sec for checking price changes
+            # print("Sleep 5 sec")
 
 
 if __name__ == "__main__":
     # starting program, waiting for User log in
     account_id = login.wait_logging()
-    print(account_id) # TODO delete this
+    print(account_id)  # TODO delete this
     # main cycle
     market_manager(account_id)
 
-    # check if account_id have portfolio -> show portfolio status
-    current_trader_portfolio = trader.Portfolio()
-    current_trader_portfolio.show()
-    # check if account_id have wallet -> show wallet status
-    current_trader_wallet = trader.Wallet()
-    current_trader_wallet.show()
-
-
-    # Wait for commands from trader
-    #market.get_stock_data("UWGN")
-    get_ticker_price()
+    # # check if account_id have portfolio -> show portfolio status
+    # current_trader_portfolio = trader.Portfolio()
+    # current_trader_portfolio.show()
+    # # check if account_id have wallet -> show wallet status
+    # current_trader_wallet = trader.Wallet()
+    # current_trader_wallet.show()
+    #
+    # # Wait for commands from trader
+    # # market.get_stock_data("UWGN")
+    # get_ticker_price()
