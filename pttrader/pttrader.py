@@ -231,7 +231,9 @@ if __name__ == "__main__":
     userid = login.wait_logging()
     print(userid)
     # check if account_id have portfolio -> show portfolio status
-    trader.Portfolio.show()
+    current_trader_portfolio = trader.Portfolio()
+    current_trader_portfolio.show()
     # check if account_id have wallet -> show wallet status
-
+    current_trader_wallet = trader.Wallet()
+    current_trader_wallet.show()
     # Wait for commands from trader

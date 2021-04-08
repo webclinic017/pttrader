@@ -21,7 +21,9 @@ class Wallet:
      wallet_current_state_example.csv
      wallet_history_example.csv
     """
-    pass
+    def show(self):
+        self.data = pd.read_csv("wallet_current_state_example.csv")
+        print(self.data)
 
 
 class Portfolio:
@@ -33,9 +35,8 @@ class Portfolio:
      
      portfolio_history_example.csv
     """
-    def __init__(self):
-        pass
 
-    def show():
-        data = pd.read_csv("portfolio_history_example.csv")
-        print(data)
+
+    def show(self):
+        self.data = pd.read_csv("portfolio_history_example.csv")
+        print(self.data)
