@@ -16,10 +16,10 @@ NEW_ORDER_LIST = []
 TRADING_HISTORY_LIST = []
 
 
-def create_order_query():
+def create_order_query(operation_type):
     """
     Get input parameters from trader:
-    operation_type
+    operation type: Buy or Sell from main cycle
     ticker
     buy_order_price
     sell_order_price
@@ -27,8 +27,8 @@ def create_order_query():
     created_at
     :return: order query
     """
-    print("Enter operation type: Buy or Sell")
-    operation_type = str(input())
+
+
     print("Enter ticker name:")
     ticker = str(input())
     if operation_type == "Buy":
@@ -261,7 +261,7 @@ def market_manager(user_account_id):
             print("Waiting for user command")
             user_input = input(">>")
         elif user_input == "buy":
-
+            create_order_query("Buy")
             print("Try to buy")
         #check_user_input()
 
