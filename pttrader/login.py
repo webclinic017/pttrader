@@ -30,7 +30,7 @@ def wait_logging():
         answer = str(input())
         if answer == "Yes":
 
-            create_new_login(login)
+            create_new_account(login)
             print("New login created")
             # cycle going again and ends after return ID
         else:
@@ -38,15 +38,16 @@ def wait_logging():
             login = str(input())
 
 
-def create_new_login(new_login):
+def create_new_account(new_login):
     """
     :param: new_login Name
     This function create new login and account_id in traders_accounts.txt and append it to the end
     :return: traders_accounts.txt
     """
+
     generate_new_id = randint(10000, 99999)  # random id generator
     new_account = trader.Account(login=new_login,account_id=generate_new_id)
-    print(new_account.login)
+    # add new account to local database
     with open('traders_accounts.txt') as file:
         data = file.read()
     data = json.loads(data)

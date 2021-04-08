@@ -1,4 +1,5 @@
 import pandas as pd
+import csv
 
 class Account:
     """
@@ -11,6 +12,23 @@ class Account:
         self.login = login
         self.account_id = account_id
 
+    def create_new_wallet(self, account_id):
+
+        with open("wallet_history_"+str(account_id)+".csv", "w+", newline='') as csv_file:
+            fieldnames = ["currency", "amount", "date_time", "operation", "operation_id"]
+
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+
+
+    def create_new_portfolio(self, account_id):
+
+        with open("portfolio_history_"+str(account_id)+".csv", "w+", newline='') as csv_file:
+            fieldnames = ["instrument", "ticker", "amount", "price", "date_time", "operation", "operation_id"]
+
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+
 
 
 class Wallet:
@@ -21,8 +39,8 @@ class Wallet:
      wallet_current_state_example.csv
      wallet_history_example.csv
     """
-    def show(self):
-        self.data = pd.read_csv("wallet_current_state_example.csv")
+    def show_history(self, account_id):
+        self.data = pd.read_csv("wallet_history_"+str(account_id)+".csv")
         print(self.data)
 
 
@@ -35,8 +53,6 @@ class Portfolio:
      
      portfolio_history_example.csv
     """
-
-
-    def show(self):
-        self.data = pd.read_csv("portfolio_history_example.csv")
+    def show_history(self, account_id):
+        self.data = pd.read_csv("portfolio_history_"+str(account_id)+".csv")
         print(self.data)

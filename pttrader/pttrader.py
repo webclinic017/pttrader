@@ -201,38 +201,83 @@ def check_order_status(order):
         return order_status
 
 
-def market_manager():
-    global NEW_ORDER_LIST
-    global TRADING_HISTORY_LIST
-    # print(NEW_ORDER_LIST)
-    while NEW_ORDER_LIST:
-        # make pause for 1 min for checking price changes
-        print("Sleep 5 sec")
-        time.sleep(5)
-        for order in NEW_ORDER_LIST:
-            print(order)
-            order_status = check_order_status(order)
-            if order_status[0]:
-                print("Order ", order, "status is True", )
+def check_new_orders(new_order_list):
 
-                done_order = [order, order_status[1]]
-                TRADING_HISTORY_LIST.append(done_order)
+    for order in new_order_list:
+        print(order)
+        order_status = check_order_status(order)
+        if order_status[0]:
+            print("Order ", order, "status is True", )
 
-                NEW_ORDER_LIST.remove(order)
-                print(NEW_ORDER_LIST)
+            done_order = [order, order_status[1]]
+            TRADING_HISTORY_LIST.append(done_order)
 
+            NEW_ORDER_LIST.remove(order)
+            print(NEW_ORDER_LIST)
+
+        else:
+            print("Checking...")
+    if not NEW_ORDER_LIST:
+        print("There are no new orders ", NEW_ORDER_LIST)
+        print("Orders history here: ", TRADING_HISTORY_LIST)
+
+
+
+
+
+
+
+def market_manager(user_account_id):
+    """
+    This is main cycle
+
+    """
+
+    current_user_id = user_account_id
+    user_logged_in = True
+    print("Type: Help, to see available commands or hit Enter to pass")
+    user_input = input()
+    if user_input == "":
+        print("Passed")
+    else:
+        print("You type: ", user_input)
+
+    while user_logged_in: # waiting for user commands and checking orders status
+
+
+        # there list of available user's commands:
+        if user_input == "Help":
+            print("List of commands: \n"
+                  "buy \n"
+                  "sell \n")
+            # wait for user new input:
+            print("Type: available command or hit Enter to pass")
+            user_input = input()
+            if user_input == "":
+                print("Passed")
             else:
-                print("Checking...")
-        if not NEW_ORDER_LIST:
-            print("There are no new orders ", NEW_ORDER_LIST)
-            print("Orders history here: ", TRADING_HISTORY_LIST)
+                print("You type: ", user_input)
+        elif user_input == "":
+            print("Waiting for user command")
+            user_input = input(">>")
+        elif user_input == "buy":
+
+            print("Try to buy")
+        #check_user_input()
+
+
+        #check_new_orders()
+        time.sleep(5) # make pause for 5 sec for checking price changes
+        #print("Sleep 5 sec")
 
 
 if __name__ == "__main__":
-    # starting program
-    userid = login.wait_logging()
-    print(userid) # TODO delete this
-    # main cycle begins
+    # starting program, waiting for User log in
+    account_id = login.wait_logging()
+    print(account_id) # TODO delete this
+    # main cycle
+    market_manager(account_id)
+
     # check if account_id have portfolio -> show portfolio status
     current_trader_portfolio = trader.Portfolio()
     current_trader_portfolio.show()
