@@ -1,6 +1,7 @@
 import pandas as pd
 import csv
 from pathlib import Path
+import datetime
 
 
 def create_new_portfolio(account_id):
@@ -64,6 +65,33 @@ class Wallet:
                       "Type 'wallet' again"
                       )
                 create_new_wallet(self.account_id)
+
+    def add_money(self):
+        """
+        This function add money to current wallet
+        """
+
+
+        # ct stores current time
+        ct = datetime.datetime.now()
+        print("current time:-", ct)
+
+        # ts store timestamp of current time
+        ts = ct.timestamp()
+        print("timestamp:-", ts)
+        self.date_time = ts
+        df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
+
+        df = df.append({"currency": currency,
+                        "amount": amount,
+                        "date_time": date_time,
+                        "operation": operation,
+                        "operation_id": operation_id}
+                       , ignore_index=True)
+        pass
+
+
+
 
 
 class Portfolio:

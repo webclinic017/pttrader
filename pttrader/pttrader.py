@@ -27,6 +27,7 @@ def market_manager(user_account_id):
                   "buy \n"
                   "sell \n"
                   "wallet \n"
+                  "wallet add \n"
                   )
             # wait for user new input:
             print("Waiting for user command")
@@ -56,7 +57,13 @@ def market_manager(user_account_id):
 
             print("Your wallet: ", trader_wallet.show_history())
             user_input = ""
-        # check_user_input()
+        # wallet add money
+        elif user_input == "wallet add":
+            trader_wallet = trader.Wallet(current_user_id)
+
+            print("Your wallet: ", trader_wallet.show_history())
+            user_input = ""
+        # check_user_input
         else:
 
             print("Waiting for user command, you in else branch")
