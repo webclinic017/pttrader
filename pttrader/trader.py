@@ -52,7 +52,7 @@ class Wallet:
             if wallet_data.is_file():
                 # file exists
                 # add new account to local database
-                print("Сheck wallet for user ", str(self.account_id))
+                print("Check wallet for user ", str(self.account_id))
                 data = pd.read_csv("files/wallet_history_" + str(self.account_id) + ".csv", delimiter=',',
                                    names=["currency", "amount", "date_time", "operation", "operation_id"])
                 return data
@@ -60,7 +60,7 @@ class Wallet:
             # print(self.data)
             else:
                 print("Wallet does not exist \n"
-                      "Create new wallet \n"
+                      "To create new wallet \n"
                       "Type 'wallet' again"
                       )
                 create_new_wallet(self.account_id)
