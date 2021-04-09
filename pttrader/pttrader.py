@@ -189,7 +189,9 @@ def market_manager(user_account_id):
         if user_input == "Help":
             print("List of commands: \n\n"
                   "buy \n"
-                  "sell \n")
+                  "sell \n"
+                  "wallet \n"
+                  )
             # wait for user new input:
             print("Waiting for user command")
             user_input = input(">>")
@@ -212,6 +214,12 @@ def market_manager(user_account_id):
             broker.create_order_query("Sell")
             print("Try to sell")
             user_input = ""
+        # wallet command
+        elif user_input == "wallet":
+            trader_wallet = trader.Wallet(current_user_id)
+
+            print("Your wallet: ", trader_wallet.show_history())
+            user_input = ""
         # check_user_input()
         else:
 
@@ -225,7 +233,8 @@ def market_manager(user_account_id):
 if __name__ == "__main__":
     # starting program, waiting for User log in
     account_id = login.wait_logging()
-    print(account_id)  # TODO delete this
+    print("Hello,",account_id)
+
     # main cycle
     market_manager(account_id)
 

@@ -1,5 +1,15 @@
 import pandas as pd
 import csv
+from pathlib import Path
+
+
+def create_new_portfolio(account_id):
+    with open("portfolio_history_" + str(account_id) + ".csv", "w+", newline='') as csv_file:
+        fieldnames = ["instrument", "ticker", "amount", "price", "date_time", "operation", "operation_id"]
+
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+
 
 class Account:
     """
@@ -8,27 +18,18 @@ class Account:
     Password
     ID
     """
+
     def __init__(self, login, account_id):
         self.login = login
         self.account_id = account_id
 
-    def create_new_wallet(self, account_id):
 
-        with open("wallet_history_"+str(account_id)+".csv", "w+", newline='') as csv_file:
-            fieldnames = ["currency", "amount", "date_time", "operation", "operation_id"]
+def create_new_wallet(account_id):
+    with open("files/wallet_history_" + str(account_id) + ".csv", "w+", newline='') as csv_file:
+        fieldnames = ["currency", "amount", "date_time", "operation", "operation_id"]
 
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            writer.writeheader()
-
-
-    def create_new_portfolio(self, account_id):
-
-        with open("portfolio_history_"+str(account_id)+".csv", "w+", newline='') as csv_file:
-            fieldnames = ["instrument", "ticker", "amount", "price", "date_time", "operation", "operation_id"]
-
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            writer.writeheader()
-
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
 
 
 class Wallet:
@@ -37,11 +38,32 @@ class Wallet:
     Contain currency type: "USD", "EUR", "RUR" etc. and amount
     Variant 1: Wallet as two  unic .csv tables as database for Trader's account see:
      wallet_current_state_example.csv
-     wallet_history_example.csv
+     wallet_history_41447.csv
     """
-    def show_history(self, account_id):
-        self.data = pd.read_csv("wallet_history_"+str(account_id)+".csv")
-        print(self.data)
+
+    def __init__(self, current_user_id):
+
+        self.account_id = current_user_id
+
+    def show_history(self):
+        if Path("files").is_dir():
+
+            wallet_data = Path("files/wallet_history_" + str(self.account_id) + ".csv")
+            if wallet_data.is_file():
+                # file exists
+                # add new account to local database
+                print("Сheck wallet for user ", str(self.account_id))
+                data = pd.read_csv("files/wallet_history_" + str(self.account_id) + ".csv", delimiter=',',
+                                   names=["currency", "amount", "date_time", "operation", "operation_id"])
+                return data
+
+            # print(self.data)
+            else:
+                print("Wallet does not exist \n"
+                      "Create new wallet \n"
+                      "Type 'wallet' again"
+                      )
+                create_new_wallet(self.account_id)
 
 
 class Portfolio:
@@ -53,6 +75,7 @@ class Portfolio:
      
      portfolio_history_example.csv
     """
+
     def show_history(self, account_id):
-        self.data = pd.read_csv("portfolio_history_"+str(account_id)+".csv")
+        self.data = pd.read_csv("portfolio_history_" + str(account_id) + ".csv")
         print(self.data)
