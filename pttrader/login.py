@@ -11,7 +11,7 @@ def wait_logging():
 
     print("Please log in")
     print("Type your Name:")
-    login = str(input(">>"))
+    login = input(">>")
     print("Type your Account ID:")
     account_id = int(input(">>"))
     while wait:
@@ -24,7 +24,7 @@ def wait_logging():
                 print(login, "and", account_id, " does not exist.")
                 print("Create new Account?")
                 print("type: Yes or No or hit Enter to exit:")
-                answer = str(input(">>"))
+                answer = input(">>")
                 if answer == "Yes":
 
                     # print("Login",login,"Id", account_id)
@@ -34,7 +34,11 @@ def wait_logging():
                     return checking_traders_accounts_file(login, new_account_id)
                     # cycle going again and ends after return ID
                 elif answer == "No":
-                    pass
+                    print("Please log in")
+                    print("Type your Name:")
+                    login = input(">>")
+                    print("Type your Account ID:")
+                    account_id = int(input(">>"))
                 elif answer == "":
                     print("exit")
                     exit(code=1)

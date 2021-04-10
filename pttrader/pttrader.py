@@ -53,15 +53,16 @@ def market_manager(user_account_id):
             user_input = ""
         # wallet command
         elif user_input == "wallet":
-            trader_wallet = trader.Wallet(current_user_id)
+            print("Check wallet for user ", str(current_user_id))
+            trader.wallet_show_history(current_user_id)
 
-            print("Your wallet: ", trader_wallet.show_history())
+            print(trader.wallet_show_history(current_user_id))
             user_input = ""
         # wallet add money
         elif user_input == "wallet add":
-            trader_wallet = trader.Wallet(current_user_id)
+            trader.wallet_add_money(current_user_id)
 
-            print("Your wallet: ", trader_wallet.show_history())
+            print(trader.wallet_show_history(current_user_id))
             user_input = ""
         # check_user_input
         else:

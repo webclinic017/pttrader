@@ -1,1 +1,0 @@
-[{"login": "Mike", "account_id": 92413}, {"login": "Ilya", "account_id": 24856}]
