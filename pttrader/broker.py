@@ -1,8 +1,13 @@
-import datetime as dt
+import datetime
+import market
+import trader
+import json
+from random import randint
+import pandas as pd
 
 
 # input data may be primary from trader: buy_request, sell_request
-def create_order_query(operation_type):
+def create_order_query(order_query):
     """
     Get input parameters from trader:
     operation type: Buy or Sell from main cycle
@@ -13,25 +18,40 @@ def create_order_query(operation_type):
     created_at
     :return: order query
     """
-
+    # ct stores current time
+    ct = datetime.datetime.now()
+    # ts store timestamp of current time
+    ts = ct.timestamp()
+    operation_type = order_query[0]
     print("Enter ticker name:")
     ticker = str(input(">>"))
+    print("Current price:", market.get_ticker_price(ticker))
     if operation_type == "Buy":
         print("Enter price for Buy operation:")
         buy_order_price = float(input(">>"))
+        lot_size = market.get_ticker_lot_size(ticker)
+        print("1 lot size:", lot_size)
         print("Enter amount in lot's:")
         amount = int(input())
-        created_at = dt.datetime.utcnow()
-        order_query = [operation_type, ticker, buy_order_price, amount, created_at]
+        currency = market.get_ticker_currency(ticker)
+        money_to_subtract = buy_order_price * lot_size * amount
+        created_at = ts
+        current_user_id = order_query[1]
+        order_query = [operation_type, current_user_id, ticker, buy_order_price, amount, currency, money_to_subtract, created_at]
         print("You create buy order: ", order_query)
-        return order_query
+        # need to subtract money from wallet and hold before order will be done
+        if wallet_subtract_money(order_query):
+            return order_query
+        else:
+            print("Order is not ready, please repeat")
 
-    elif operation_type == "Sell":
+
+    elif operation_type== "Sell":
         print("Enter price for Sell operation:")
         sell_order_price = float(input(">>"))
         print("Enter amount in lot's:")
         amount = int(input(">>"))
-        created_at = dt.datetime.utcnow()
+        created_at = ts
         order_query = [operation_type, ticker, sell_order_price, amount, created_at]
         print("You create sell order query: ", order_query)
         return order_query
@@ -40,10 +60,91 @@ def create_order_query(operation_type):
         print("You do something wrong")
 
 
+def wallet_subtract_money(order_data):
+
+    operation_type = order_data[0]
+    current_user_id = order_data[1]
+    ticker = order_data[2]
+    buy_order_price = order_data[3]
+    amount = order_data[4]
+    currency = order_data[5]
+    money_to_subtract = order_data[6]
+    created_at = order_data[7]
+    order_query = [operation_type, current_user_id, ticker, buy_order_price, amount, currency, money_to_subtract,
+                   created_at]
+    print("Money to subtract:", money_to_subtract)
+    print(order_query)
+
+    # ct stores current time
+    ct = datetime.datetime.now()
+    # ts store timestamp of current time
+    ts = ct.timestamp()
+    account_id = current_user_id
+    # check if this file exist
+    trader.is_wallet_history_exist(account_id)
+    wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
+
+    if currency == "RUB" or currency == "USD":
+
+
+        amount = money_to_subtract
+        date_time = ts
+        operation = "subtract"
+        # random id generator
+        operation_id = randint(10000, 99999)
+
+        # second operation will calculate and write new data to current state of wallet
+        with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+            data = file.read()
+        wallet_current_data = json.loads(data)
+
+        if currency == "RUB":
+            wallet_current_data["RUB"] -= amount
+            if wallet_current_data["RUB"] >= 0.:
+                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+
+                df = wallet_history_data.append({"currency": currency,
+                                                 "amount": amount,
+                                                 "date_time": date_time,
+                                                 "operation": operation,
+                                                 "operation_id": operation_id},
+                                                ignore_index=True)
+
+                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+                return True
+            elif wallet_current_data["RUB"] < 0.:
+                print("You don't have enough money for this operation")
+                return False
+        elif currency == "USD":
+            wallet_current_data["USD"] -= amount
+            if wallet_current_data["USD"] >= 0.:
+                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+                # write operation to history
+                df = wallet_history_data.append({"currency": currency,
+                                                 "amount": amount,
+                                                 "date_time": date_time,
+                                                 "operation": operation,
+                                                 "operation_id": operation_id},
+                                                ignore_index=True)
+
+                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+                return True
+            elif wallet_current_data["USD"] < 0.:
+                print("You don't have enough money for this operation")
+                return False
+
+
+
+
+
+
+
 def commission():
     pass
 
-def trader_deposit_subtraction(currency, buy_order_price, amount):
+def trader_wallet_subtraction(currency, buy_order_price, amount):
     """
     This function subtract money from trader deposit by amount * buy_order_price BEFORE order complete at market
     :param currency: currency of order USD, RUR, etc
@@ -75,36 +176,9 @@ def trader_deposit_addition(currency, sell_order_price, amount):
     print("Trader deposit changed: ", TRADER_DEPOSIT)
 
 
-def order_buy_limit(operation_type="Buy", ticker="RSTK", buy_order_price=110.3, amount=1, currency="RUR",
-                    created_at=dt.datetime.utcnow()):
-    """
-    This function make order to buy amount of stocks by ticker name
-    specified at buy_order_price and wait until market price of stock ticker reach
-    buy_order_price
-    :param operation_type:
-    :param currency:
-    :param created_at:
-    :param ticker: ticker name
-    :param buy_order_price: price to buy ticker
-    :param amount: number of stocks to buy
-    :return: order_id
-    """
-
-    operation_type = order_data[0]
-    ticker = order_data[1]
-    buy_order_price = order_data[2]
-    amount = order_data[3]
-    currency = "RUR"
-    created_at = order_data[4]
-    buy_order_data = [operation_type, ticker, buy_order_price, amount, currency, created_at]
-    print("You place limit buy order for: ", ticker, ", amount lot is: ", amount, ", by price: ",
-          buy_order_price)
-    trader_deposit_subtraction(currency, buy_order_price, amount)
-    time.sleep(1)
-    return buy_order_data
 
 
-def order_sell_limit(ticker="UWGN", currency="RUR", sell_order_price=110.3, amount=1, created_at=dt.datetime.utcnow()):
+def order_sell_limit(ticker="UWGN", currency="RUR", sell_order_price=110.3, amount=1, created_at=None):
     """
 
     This function make order to sell amount of stocks by ticker name

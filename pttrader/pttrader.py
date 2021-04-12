@@ -22,7 +22,7 @@ def market_manager(user_account_id):
     while user_logged_in:  # waiting for user commands and checking orders status
 
         # there list of available user's commands:
-        if user_input == "Help":
+        if user_input == "Help" or user_input == "help":
             print("List of commands: \n\n"
                   "buy \n"
                   "sell \n"
@@ -43,7 +43,8 @@ def market_manager(user_account_id):
             user_input = input(">>")
         # buy command
         elif user_input == "buy":
-            broker.create_order_query("Buy")
+            request_query = ["Buy", current_user_id]
+            broker.create_order_query(request_query)
             print("Try to buy")
             user_input = ""
         # sell command
@@ -56,7 +57,7 @@ def market_manager(user_account_id):
             print("Check wallet for user: ", str(current_user_id))
             wallet_data = trader.wallet_show_current(current_user_id)
 
-            print(wallet_data)
+            print("Your current balance: ", wallet_data)
             user_input = ""
         # wallet add money
         elif user_input == "wallet add":

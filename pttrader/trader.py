@@ -3,6 +3,7 @@ import csv
 from pathlib import Path
 import datetime
 from random import randint
+import json
 
 
 class Account:
@@ -37,8 +38,10 @@ def wallet_create_new(account_id):
     """
     wallet_history_df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
     wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-    wallet = pd.DataFrame(columns=["currency", "amount"])
-    wallet.to_csv("files/wallet_" + str(account_id) + ".csv", index=False)
+
+    first_data = {"RUB": 0., "USD": 0.}
+    with open("files/wallet_" + str(account_id) + ".txt", 'w+') as file:
+        file.write(json.dumps(first_data))
 
 
 def wallet_add_money(account_id):
@@ -51,22 +54,19 @@ def wallet_add_money(account_id):
 
     # ct stores current time
     ct = datetime.datetime.now()
-    print("current time:-", ct)
-
     # ts store timestamp of current time
     ts = ct.timestamp()
-    print("timestamp:-", ts)
-
-    is_wallet_history_exist(account_id)  # check if this file exist
+    # check if this file exist
+    is_wallet_history_exist(account_id)
     wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
     while True:
 
         print("Enter currency:")
         currency = str(input(">>"))
-        if currency == "RUR" or currency == "USD":
+        if currency == "RUB" or currency == "USD":
 
             print("Enter amount:")
-            amount = input(">>")
+            amount = float(input(">>"))
             date_time = ts
             operation = "add"
             operation_id = randint(10000, 99999)  # random id generator
@@ -79,8 +79,70 @@ def wallet_add_money(account_id):
 
             df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
             # second operation will calculate and write new data to current state of wallet
-            wallet_current_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
-            updated_amount = amount + wallet_current_data['amount']
+            with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+                data = file.read()
+            wallet_current_data = json.loads(data)
+
+            if currency == "RUB":
+                wallet_current_data["RUB"] += amount
+            elif currency == "USD":
+                wallet_current_data["USD"] += amount
+            print(wallet_current_data)
+            with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+            break
+        else:
+            print("You type something wrong")
+
+
+def wallet_subtract_money(account_id):
+    """
+    This function subtract money from current wallet .csv
+    and write operation to wallet_history .csv
+    fist operation will add data to wallet_history data
+    second operation will calculate data and add data to current wallet
+    """
+
+    # ct stores current time
+    ct = datetime.datetime.now()
+    # ts store timestamp of current time
+    ts = ct.timestamp()
+
+    # check if this file exist
+    is_wallet_history_exist(account_id)
+    wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
+    while True:
+
+        print("Enter currency:")
+        currency = str(input(">>"))
+        if currency == "RUB" or currency == "USD":
+
+            print("Enter amount:")
+            amount = float(input(">>"))
+            date_time = ts
+            operation = "subtract"
+            # random id generator
+            operation_id = randint(10000, 99999)
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": amount,
+                                             "date_time": date_time,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
+
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # second operation will calculate and write new data to current state of wallet
+            with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+                data = file.read()
+            wallet_current_data = json.loads(data)
+
+            if currency == "RUB":
+                wallet_current_data["RUB"] -= amount
+            elif currency == "USD":
+                wallet_current_data["USD"] -= amount
+            print(wallet_current_data)
+            with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
             break
         else:
             print("You type something wrong")
@@ -92,11 +154,12 @@ def wallet_show_current(account_id):
     """
     if Path("files").is_dir():
 
-        current_wallet_data = Path("files/wallet_" + str(account_id) + ".csv")
+        current_wallet_data = Path("files/wallet_" + str(account_id) + ".txt")
         if current_wallet_data.is_file():
             # if file exists, return data
-
-            data = pd.read_csv("files/wallet_" + str(account_id) + ".csv")
+            with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+                data = file.read()
+            data = json.loads(data)
             return data
 
         # print(self.data)
