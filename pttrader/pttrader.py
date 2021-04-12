@@ -51,12 +51,12 @@ def market_manager(user_account_id):
             broker.create_order_query("Sell")
             print("Try to sell")
             user_input = ""
-        # wallet command
+        # wallet command to show current state of wallet
         elif user_input == "wallet":
-            print("Check wallet for user ", str(current_user_id))
-            trader.wallet_show_history(current_user_id)
+            print("Check wallet for user: ", str(current_user_id))
+            wallet_data = trader.wallet_show_current(current_user_id)
 
-            print(trader.wallet_show_history(current_user_id))
+            print(wallet_data)
             user_input = ""
         # wallet add money
         elif user_input == "wallet add":
