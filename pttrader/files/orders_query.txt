@@ -1,0 +1,1 @@
+[{"order_type": "Buy", "user_id": 39460, "ticker": "SBER", "order_price": 220.0, "amount": 1, "currency": "RUB", "order_price_total": 2200.0, "created_at": 1618333400.734864, "operation_id": 22040, "instrument": "stocks", "order_status": false}]

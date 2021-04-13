@@ -26,7 +26,8 @@ def market_manager(user_account_id):
             print("List of commands: \n\n"
                   "buy \n"
                   "sell \n"
-                  "wallet \n"
+                  "wallet balance \n"
+                  "wallet history \n"
                   "wallet add \n"
                   )
             # wait for user new input:
@@ -39,31 +40,44 @@ def market_manager(user_account_id):
                 print("You type: ", user_input)
 
         elif user_input == "":
-            print("Waiting for user command")
+            print("Waiting for user command, elif branch")
             user_input = input(">>")
+        # check order status
+        elif user_input == "check":
+            print("Checking user orders status from orders_query_doc")
+            broker.check_new_orders(current_user_id)
+            user_input = ""
         # buy command
         elif user_input == "buy":
+            print("Try to buy")
             request_query = ["Buy", current_user_id]
             broker.create_order_query(request_query)
-            print("Try to buy")
+
             user_input = ""
         # sell command
         elif user_input == "sell":
-            broker.create_order_query("Sell")
             print("Try to sell")
+            broker.create_order_query("Sell")
+
             user_input = ""
         # wallet command to show current state of wallet
-        elif user_input == "wallet":
+        elif user_input == "wallet balance":
             print("Check wallet for user: ", str(current_user_id))
             wallet_data = trader.wallet_show_current(current_user_id)
 
             print("Your current balance: ", wallet_data)
             user_input = ""
+        elif user_input == "wallet history":
+            print("Check wallet for user: ", str(current_user_id))
+            wallet_history_data = trader.wallet_show_history(current_user_id)
+
+            print(wallet_history_data)
+            user_input = ""
         # wallet add money
         elif user_input == "wallet add":
             trader.wallet_add_money(current_user_id)
 
-            print(trader.wallet_show_history(current_user_id))
+            print(trader.wallet_show_current(current_user_id))
             user_input = ""
         # check_user_input
         else:
