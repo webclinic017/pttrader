@@ -410,6 +410,7 @@ def check_order_status(order_data_next):
             return order_status
         else:
             print("Wrong condition or not Done yet")
+            # need to store in another list for check iteration
             order_done_at = created_at
             flag = False
             order_status = [flag, order_done_at]

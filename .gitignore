@@ -1,7 +1,7 @@
 .idea/
 .spec
-.build/
-.dist/
-/pttrader/dist/
-/pttrader/build/
-/pttrader/dist/pttrader
+build/
+dist/
+pttrader/dist/
+pttrader/build/
+pttrader/dist/pttrader
