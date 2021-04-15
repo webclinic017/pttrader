@@ -2,6 +2,7 @@ import yfinance as yf
 import datetime
 import pandas as pd
 
+
 # tickers_list = "USDRUB"
 #
 # # 1618307337.30397
