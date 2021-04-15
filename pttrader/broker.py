@@ -80,13 +80,24 @@ def create_order_query(order_query):
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                        created_at, operation_id, instrument, order_status]
         print("You create sell order: ", order_query)
-        # need to subtract money from wallet and hold before order will be done
-        if wallet_subtract_money_for_buy(order_query):
+        # need to add money to wallet after order will be done
+        # check if trader portfolio have data for sell
+        if portfolio_have_data_for_sell(order_query):
+            print("Checking portfolio for sell order:", order_query)
+        if wallet_add_money_for_sell(order_query):
             create_orders_query(order_query)
             return True
         else:
             print("Order is not ready, please repeat")
             return False
+
+
+def portfolio_have_data_for_sell(order_data):
+    """
+    This function check if
+
+    """
+    pass
 
 
 def wallet_subtract_money_for_buy(order_data):
@@ -103,7 +114,8 @@ def wallet_subtract_money_for_buy(order_data):
     order_status = order_data[10]
     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                    created_at, operation_id, instrument, order_status]
-    print("Money to subtract:", order_price_total)
+
+    print("Money to subtract from wallet:", order_price_total)
     print(order_query)
 
     # ct stores current time
@@ -124,14 +136,13 @@ def wallet_subtract_money_for_buy(order_data):
             data = file.read()
         wallet_current_data = json.loads(data)
 
-        if instrument == "USDRUB":
-            wallet_current_data["RUB"] -= amount
+        if instrument == "currency":
+            wallet_current_data["RUB"] -= order_price_total
             if wallet_current_data["RUB"] >= 0.:
                 with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
 
                 df = wallet_history_data.append({"currency": currency,
-                                                 "price": price,
                                                  "amount": amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
@@ -145,6 +156,7 @@ def wallet_subtract_money_for_buy(order_data):
 
             elif wallet_current_data["RUB"] < 0.:
                 print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
                 return False
 
         if currency == "RUB":
@@ -165,6 +177,7 @@ def wallet_subtract_money_for_buy(order_data):
                 return True
             elif wallet_current_data["RUB"] < 0.:
                 print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
                 return False
         elif currency == "USD":
             wallet_current_data["USD"] -= amount
@@ -185,6 +198,7 @@ def wallet_subtract_money_for_buy(order_data):
                 return True
             elif wallet_current_data["USD"] < 0.:
                 print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
                 return False
 
 
@@ -243,6 +257,7 @@ def wallet_add_money_for_sell(order_data):
                 return True
             elif wallet_current_data["RUB"] < 0.:
                 print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
                 return False
         elif currency == "USD":
             wallet_current_data["USD"] += amount
@@ -261,6 +276,7 @@ def wallet_add_money_for_sell(order_data):
                 return True
             elif wallet_current_data["USD"] < 0.:
                 print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
                 return False
 
 
@@ -334,6 +350,7 @@ def check_new_orders(account_id):
         for order_data in new_order_list:
             # check orders in orders list only for current user
             if order_data["user_id"] == account_id:
+
                 order_status = check_order_status(order_data)
 
                 if order_status[0]:
@@ -347,7 +364,7 @@ def check_new_orders(account_id):
 
                     # add data about done order to potrtfolio_history
                     order_data.update({"order_done_at": order_status[1]})
-                    trader.portfolio_history_add(order_data)
+                    trader.portfolio_history_add_order(order_data)
                 elif not order_status[0]:
                     print("Order status = False")
                     order_status = False

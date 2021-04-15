@@ -1,0 +1,3 @@
+currency,price,amount,date_time,operation,operation_id
+RUB,,100000.0,1618475767.789577,add,65372
+RUB,,7690.000000000001,1618475801.34505,subtract,24006

@@ -95,7 +95,7 @@ def create_new_account(new_login):
             return new_account.account_id
 
         elif Path("files").is_dir():
-            time.sleep(1)
+
 
             # add new account to local database
 
@@ -106,10 +106,8 @@ def create_new_account(new_login):
             return new_account.account_id
 
     else:
-        time.sleep(1)
-        os.mkdir("files")
-        time.sleep(1)
 
+        os.mkdir("files")
         # add new account to local database
 
         first_data = [{"login": new_account.login, "account_id": new_account.account_id}]

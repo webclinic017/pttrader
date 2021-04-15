@@ -1,9 +1,11 @@
 import pandas as pd
-import csv
 from pathlib import Path
 import datetime
 from random import randint
 import json
+import market
+
+pd.set_option('display.max_columns', None)
 
 
 class Account:
@@ -36,10 +38,11 @@ def wallet_create_new(account_id):
     first for storing wallet operations history
     and second for current wallet state
     """
-    wallet_history_df = pd.DataFrame(columns=["currency", "price", "amount", "date_time", "operation", "operation_id"])
+    wallet_history_df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
     wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-
-    first_data = {"RUB": 0., "USD": 0.}
+    print("Enter main currency for your broker RUB or USD")
+    main_currency = str(input(">>"))
+    first_data = {main_currency: 0.}
     with open("files/wallet_" + str(account_id) + ".txt", 'w+') as file:
         file.write(json.dumps(first_data))
 
@@ -58,51 +61,38 @@ def wallet_add_money(account_id):
     ts = ct.timestamp()
     # check if this file exist
     is_wallet_history_exist(account_id)
-    is_portfolio_history_exist(account_id)
     wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
+    with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+        data = file.read()
+    wallet_current_data = json.loads(data)
+    currency = str()
+    for key in wallet_current_data.keys():
+        currency = key
+    print("Enter amount to add:")
+    amount = float(input(">>"))
+    date_time = ts
+    operation = "add"
+    operation_id = randint(10000, 99999)  # random id generator
+    df = wallet_history_data.append({"currency": currency,
+                                     "amount": amount,
+                                     "date_time": date_time,
+                                     "operation": operation,
+                                     "operation_id": operation_id},
+                                    ignore_index=True)
 
-    while True:
+    df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+    # second operation will calculate and write new data to current state of wallet
+    with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+        data = file.read()
+    wallet_current_data = json.loads(data)
 
-        print("Enter currency:")
-        currency = str(input(">>"))
-        if currency == "RUB" or currency == "USD":
+    if currency == "RUB":
+        wallet_current_data["RUB"] += amount
+    elif currency == "USD":
+        wallet_current_data["USD"] += amount
 
-            print("Enter amount:")
-            amount = float(input(">>"))
-            price = 0.
-            if currency == "RUB":
-
-                price += amount
-            elif currency == "USD":
-                print("Please enter price in rubles when you bought a USD early:")
-                price = float(input(">>"))
-            date_time = ts
-            operation = "add"
-            operation_id = randint(10000, 99999)  # random id generator
-            df = wallet_history_data.append({"currency": currency,
-                                             "price": price,
-                                             "amount": amount,
-                                             "date_time": date_time,
-                                             "operation": operation,
-                                             "operation_id": operation_id},
-                                            ignore_index=True)
-
-            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-            # second operation will calculate and write new data to current state of wallet
-            with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
-                data = file.read()
-            wallet_current_data = json.loads(data)
-
-            if currency == "RUB":
-                wallet_current_data["RUB"] += amount
-            elif currency == "USD":
-                wallet_current_data["USD"] += amount
-
-            with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
-                file.write(json.dumps(wallet_current_data))
-            break
-        else:
-            print("You type something wrong")
+    with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+        file.write(json.dumps(wallet_current_data))
 
 
 def wallet_subtract_money(account_id):
@@ -136,7 +126,6 @@ def wallet_show_current(account_id):
                   "New wallet will be created \n"
                   )
             wallet_create_new(account_id)
-            portfolio_create_new(account_id)
 
 
 def wallet_show_history(account_id):
@@ -158,7 +147,6 @@ def wallet_show_history(account_id):
                   "Type 'wallet' again"
                   )
             wallet_create_new(account_id)
-            portfolio_create_new(account_id)
 
 
 def is_wallet_history_exist(account_id):
@@ -175,7 +163,6 @@ def is_wallet_history_exist(account_id):
                   )
 
             wallet_create_new(account_id)  # create new empty wallet
-            portfolio_create_new(account_id)  # create new empty portfolio
 
 
 class Portfolio:
@@ -188,9 +175,13 @@ class Portfolio:
      portfolio_history_example.csv
     """
 
-    def show_history(self, account_id):
-        self.data = pd.read_csv("portfolio_history_" + str(account_id) + ".csv")
-        print(self.data)
+    def __init__(self, account_id):
+        self.data = pd.DataFrame()
+        self.account_id = account_id
+
+    def show_history(self):
+        self.data = pd.read_csv("portfolio_history_" + str(self.account_id) + ".csv")
+        return self.data
 
 
 def portfolio_create_new(account_id):
@@ -226,7 +217,7 @@ def is_portfolio_history_exist(account_id):
             portfolio_create_new(account_id)  # create new empty portfolio
 
 
-def portfolio_history_add(data):
+def portfolio_history_add_order(data):
     """
     {'order_type': 'Buy', 'user_id': 39460, 'ticker': 'NMTP', 'order_price': 7.8, 'amount': 10, 'currency': 'RUB',
      'order_price_total': 7800.0, 'created_at': 1618331390.686862, 'operation_id': 73483, 'instrument': 'stocks',
@@ -251,3 +242,22 @@ def portfolio_history_add(data):
 
     df.to_csv("files/portfolio_history_" + str(account_id) + ".csv", index=False)
 
+
+def portfolio_show_history(account_id):
+    """
+    This function show history of portfolio, stored in .csv file
+    """
+    if Path("files").is_dir():
+
+        portfolio_data = Path("files/portfolio_history_" + str(account_id) + ".csv")
+        if portfolio_data.is_file():
+            # if file exists, return data
+            data = pd.read_csv("files/portfolio_history_" + str(account_id) + ".csv")
+            return data
+
+        else:
+            print("Portfolio does not exist \n"
+                  "New Portfolio will be created \n"
+                  )
+
+            portfolio_create_new(account_id)

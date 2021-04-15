@@ -14,11 +14,6 @@ def market_manager(user_account_id):
     user_logged_in = True
     print("Type: Help, to see available commands or hit Enter to pass")
     user_input = input(">>")
-    if user_input == "":
-        print("Passed")
-    else:
-        print("You type: ", user_input)
-
     while user_logged_in:  # waiting for user commands and checking orders status
 
         # there list of available user's commands:
@@ -57,7 +52,8 @@ def market_manager(user_account_id):
         # sell command
         elif user_input == "sell":
             print("Try to sell")
-            broker.create_order_query("Sell")
+            request_query = ["Sell", current_user_id]
+            broker.create_order_query(request_query)
 
             user_input = ""
         # wallet command to show current state of wallet
@@ -67,6 +63,7 @@ def market_manager(user_account_id):
 
             print("Your current balance: ", wallet_data)
             user_input = ""
+        # wallet show history
         elif user_input == "wallet history":
             print("Check wallet for user: ", str(current_user_id))
             wallet_history_data = trader.wallet_show_history(current_user_id)
@@ -79,9 +76,14 @@ def market_manager(user_account_id):
 
             print(trader.wallet_show_current(current_user_id))
             user_input = ""
+        # portfolio show history
+        elif user_input == "portfolio history":
+            #trader.portfolio_show_history(current_user_id)
+
+            print(trader.portfolio_show_history(current_user_id))
+            user_input = ""
         # check_user_input
         else:
-
             print("Waiting for user command, you in else branch")
             user_input = input(">>")
             # check_new_orders()
@@ -90,7 +92,7 @@ def market_manager(user_account_id):
 
 
 def main():
-    # starting program, waiting for User log in
+    # starting program, waiting for  User log in and user_id return
     account_id = login.wait_logging()
     print("Hello,", account_id)
     # main cycle
