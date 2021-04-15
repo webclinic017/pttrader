@@ -24,8 +24,7 @@ def create_order_query(order_query):
     """
     # ct stores current time
     ct = datetime.datetime.now()
-    # ts store timestamp of current time
-    ts = ct.timestamp()
+    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     order_type = order_query[0]
     print("Enter ticker name:")
     ticker = str(input(">>"))
@@ -47,7 +46,7 @@ def create_order_query(order_query):
         amount = int(input())
         currency = market.get_ticker_currency(order_data)
         order_price_total = order_price * lot_size * amount
-        created_at = ct
+        created_at = date_time_iso
         user_id = order_query[1]
         # random id generator
         operation_id = randint(10000, 99999)
@@ -63,33 +62,46 @@ def create_order_query(order_query):
             print("Order is not ready, please repeat")
 
     elif order_type == "Sell":
+        print("Enter operation id to sell ")
+        historical_operation_id = int(input(">>"))
+        user_id = order_query[1]
+        portfolio_data = trader.portfolio_show_history(user_id)
+        portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == historical_operation_id]
+
 
         print("Enter price for Sell operation:")
         order_price = float(input(">>"))
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
         print("Enter amount in lot's:")
-        amount = int(input())
+
+        amount = int(portfolio_order_data["amount"].values)
+        print("amount:", amount)
         currency = market.get_ticker_currency(order_data)
         order_price_total = order_price * lot_size * amount
-        created_at = ct
-        user_id = order_query[1]
-        # random id generator
-        operation_id = randint(10000, 99999)
+        created_at = date_time_iso
+
+        # use historical id to easy close this orders in future
+        operation_id = historical_operation_id
         order_status = False
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                        created_at, operation_id, instrument, order_status]
         print("You create sell order: ", order_query)
         # need to add money to wallet after order will be done
         # check if trader portfolio have data for sell
-        if portfolio_have_data_for_sell(order_query):
-            print("Checking portfolio for sell order:", order_query)
-        if wallet_add_money_for_sell(order_query):
-            create_orders_query(order_query)
-            return True
-        else:
-            print("Order is not ready, please repeat")
-            return False
+        create_orders_query(order_query)
+        return True
+
+    else:
+        print("Order is not ready, please repeat")
+        return False
+
+
+def get_portfolio_data_by_operation_id(operation_id):
+
+
+    pass
+
 
 
 def portfolio_have_data_for_sell(order_data):
@@ -115,21 +127,19 @@ def wallet_subtract_money_for_buy(order_data):
     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                    created_at, operation_id, instrument, order_status]
 
-    print("Money to subtract from wallet:", order_price_total)
+    print("Money to hold from wallet:", order_price_total)
     print(order_query)
 
     # ct stores current time
     ct = datetime.datetime.now()
-    # ts store timestamp of current time
-    # ts = ct.timestamp()
+    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
+
     account_id = user_id
     # check if this file exist
     trader.is_wallet_history_exist(account_id)
     wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
-    price = order_price
-
     amount = order_price_total
-    date_time = ct
+    date_time = date_time_iso
     operation = "buy"
     # second operation will calculate and write new data to current state of wallet
     with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
@@ -218,13 +228,14 @@ def wallet_add_money_for_sell(order_data):
     operation_id = order_data[8]
     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                    created_at, operation_id]
-    print("Money to subtract:", order_price_total)
+    print("Money to add:", order_price_total)
     print(order_query)
 
     # ct stores current time
+
+
     ct = datetime.datetime.now()
-    # ts store timestamp of current time
-    # ts = ct.timestamp()
+    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     account_id = user_id
     # check if this file exist
     trader.is_wallet_history_exist(account_id)
@@ -233,7 +244,7 @@ def wallet_add_money_for_sell(order_data):
     if currency == "RUB" or currency == "USD":
 
         amount = order_price_total
-        date_time = ct
+        date_time = date_time_iso
         operation = "subtract"
         # second operation will calculate and write new data to current state of wallet
         with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
@@ -429,7 +440,7 @@ def check_order_status(order_data_next):
 
     print("Wrong condition or not Done yet")
     print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
-    print("df data is:", df)
+
     # need to store in another list for check iteration
     order_done_at = created_at
     flag = False

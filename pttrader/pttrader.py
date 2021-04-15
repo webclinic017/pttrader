@@ -24,6 +24,7 @@ def market_manager(user_account_id):
                   "wallet balance \n"
                   "wallet history \n"
                   "wallet add \n"
+                  "portfolio history\n"
                   )
             # wait for user new input:
             print("Waiting for user command")
@@ -58,14 +59,14 @@ def market_manager(user_account_id):
             user_input = ""
         # wallet command to show current state of wallet
         elif user_input == "wallet balance":
-            print("Check wallet for user: ", str(current_user_id))
+            print("User ID: ", str(current_user_id))
             wallet_data = trader.wallet_show_current(current_user_id)
 
-            print("Your current balance: ", wallet_data)
+            print("balance: ", wallet_data)
             user_input = ""
         # wallet show history
         elif user_input == "wallet history":
-            print("Check wallet for user: ", str(current_user_id))
+            print("User ID: ", str(current_user_id))
             wallet_history_data = trader.wallet_show_history(current_user_id)
 
             print(wallet_history_data)

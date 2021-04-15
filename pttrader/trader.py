@@ -57,8 +57,7 @@ def wallet_add_money(account_id):
 
     # ct stores current time
     ct = datetime.datetime.now()
-    # ts store timestamp of current time
-    ts = ct.timestamp()
+    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     # check if this file exist
     is_wallet_history_exist(account_id)
     wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
@@ -71,7 +70,7 @@ def wallet_add_money(account_id):
 
     print("Enter amount to add:")
     amount = float(input(">>"))
-    date_time = ct
+    date_time = date_time_iso
     operation = "add"
     operation_id = randint(10000, 99999)  # random id generator
     df = wallet_history_data.append({"currency": currency,
