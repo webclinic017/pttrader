@@ -47,7 +47,7 @@ def create_order_query(order_query):
         amount = int(input())
         currency = market.get_ticker_currency(order_data)
         order_price_total = order_price * lot_size * amount
-        created_at = ts
+        created_at = ct
         user_id = order_query[1]
         # random id generator
         operation_id = randint(10000, 99999)
@@ -72,7 +72,7 @@ def create_order_query(order_query):
         amount = int(input())
         currency = market.get_ticker_currency(order_data)
         order_price_total = order_price * lot_size * amount
-        created_at = ts
+        created_at = ct
         user_id = order_query[1]
         # random id generator
         operation_id = randint(10000, 99999)
@@ -121,52 +121,53 @@ def wallet_subtract_money_for_buy(order_data):
     # ct stores current time
     ct = datetime.datetime.now()
     # ts store timestamp of current time
-    ts = ct.timestamp()
+    # ts = ct.timestamp()
     account_id = user_id
     # check if this file exist
     trader.is_wallet_history_exist(account_id)
     wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
     price = order_price
-    if currency == "RUB" or currency == "USD":
-        amount = order_price_total
-        date_time = ts
-        operation = "subtract"
-        # second operation will calculate and write new data to current state of wallet
-        with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
-            data = file.read()
-        wallet_current_data = json.loads(data)
 
-        if instrument == "currency":
-            wallet_current_data["RUB"] -= order_price_total
-            if wallet_current_data["RUB"] >= 0.:
-                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
-                    file.write(json.dumps(wallet_current_data))
+    amount = order_price_total
+    date_time = ct
+    operation = "buy"
+    # second operation will calculate and write new data to current state of wallet
+    with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+        data = file.read()
+    wallet_current_data = json.loads(data)
 
-                df = wallet_history_data.append({"currency": currency,
-                                                 "amount": amount,
-                                                 "date_time": date_time,
-                                                 "operation": operation,
-                                                 "operation_id": operation_id},
-                                                ignore_index=True)
+    if instrument == "currency":
+        wallet_current_data["RUB"] -= amount
+        if wallet_current_data["RUB"] >= 0.:
+            with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+            # pay attention that 0-amount for result as -xxx
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": 0 - amount,
+                                             "date_time": date_time,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
 
-                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-                # add money to wallet after order complete
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # add money to wallet after order complete
 
-                return True
+            return True
 
-            elif wallet_current_data["RUB"] < 0.:
-                print("You don't have enough money for this operation")
-                print(trader.wallet_show_current(account_id))
-                return False
+        elif wallet_current_data["RUB"] < 0.:
+            print("You don't have enough money for this operation")
+            print(trader.wallet_show_current(account_id))
+            return False
+
+    elif instrument == "stock":
 
         if currency == "RUB":
             wallet_current_data["RUB"] -= amount
             if wallet_current_data["RUB"] >= 0.:
                 with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
-                price += amount
+
                 df = wallet_history_data.append({"currency": currency,
-                                                 "price": price,
                                                  "amount": amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
@@ -187,7 +188,6 @@ def wallet_subtract_money_for_buy(order_data):
                 # TODO think about USDRUB price where to get it to store here
                 # write operation to history
                 df = wallet_history_data.append({"currency": currency,
-                                                 "price": price,
                                                  "amount": amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
@@ -224,7 +224,7 @@ def wallet_add_money_for_sell(order_data):
     # ct stores current time
     ct = datetime.datetime.now()
     # ts store timestamp of current time
-    ts = ct.timestamp()
+    # ts = ct.timestamp()
     account_id = user_id
     # check if this file exist
     trader.is_wallet_history_exist(account_id)
@@ -233,7 +233,7 @@ def wallet_add_money_for_sell(order_data):
     if currency == "RUB" or currency == "USD":
 
         amount = order_price_total
-        date_time = ts
+        date_time = ct
         operation = "subtract"
         # second operation will calculate and write new data to current state of wallet
         with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
@@ -296,7 +296,7 @@ def create_orders_query(order_query):
                          "order_price_total": order_query[6], "created_at": order_query[7],
                          "operation_id": order_query[8], "instrument": order_query[9], "order_status": order_query[10]})
             with open('files/orders_query.txt', 'w') as file:
-                file.write(json.dumps(data))
+                file.write(json.dumps(data, default=str))
 
             return
 
@@ -311,14 +311,13 @@ def create_orders_query(order_query):
                            "operation_id": order_query[8], "instrument": order_query[9],
                            "order_status": order_query[10]}]
             with open('files/orders_query.txt', 'w+') as file:
-                file.write(json.dumps(first_data))
+                file.write(json.dumps(first_data, default=str))
                 print("New order_query_created")
             return
 
     else:
-        time.sleep(1)
+
         os.mkdir("files")
-        time.sleep(1)
 
         # add new order to local database
 
@@ -349,6 +348,8 @@ def check_new_orders(account_id):
     while new_order_list and order_status:
         for order_data in new_order_list:
             # check orders in orders list only for current user
+            print("Checking order id:", order_data["operation_id"])
+            print("Order created_at", order_data["created_at"])
             if order_data["user_id"] == account_id:
 
                 order_status = check_order_status(order_data)
@@ -368,10 +369,10 @@ def check_new_orders(account_id):
                 elif not order_status[0]:
                     print("Order status = False")
                     order_status = False
-                    break
 
                 else:
                     print("Checking order: ", order_data["operation_id"])
+        print("Iteration done")
 
     print("There are no Done orders ", len(new_order_list))
 
@@ -396,39 +397,41 @@ def check_order_status(order_data_next):
     order_price = order_data_next["order_price"]
     created_at = order_data_next["created_at"]
     instrument = order_data_next["instrument"]
+    operation_id = order_data_next["operation_id"]
 
     # need to check all prices from order created_at to now or min max daily
 
     df = market.get_ticker_historical_data(order_data_next)
+    flag = False
 
     for items in df:
         hist_price = (round(items, ndigits=3))
-
-        flag = False
         # condition for buy order
-
         if order_type == "Buy" and order_price >= hist_price:
 
             date_of_done = df.index[0]
             # convert to timestamp
-            order_done_at = datetime.datetime.timestamp(date_of_done)
+            order_done_at = date_of_done
             flag = True
             order_status = [flag, order_done_at]
-
+            print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
+                  hist_price)
             return order_status
         # condition for sell order
         elif order_type == "Sell" and order_price <= hist_price:
 
             date_of_done = df.index[0]
 
-            order_done_at = datetime.datetime.timestamp(date_of_done)
+            order_done_at = date_of_done
             flag = True
             order_status = [flag, order_done_at]
             return order_status
-        else:
-            print("Wrong condition or not Done yet")
-            # need to store in another list for check iteration
-            order_done_at = created_at
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+
+    print("Wrong condition or not Done yet")
+    print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
+    print("df data is:", df)
+    # need to store in another list for check iteration
+    order_done_at = created_at
+    flag = False
+    order_status = [flag, order_done_at]
+    return order_status

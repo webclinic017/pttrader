@@ -1,2 +1,0 @@
-order_type,ticker,order_price,amount,currency,order_price_total,order_created_at,operation_id,instrument,order_done_at
-Buy,USDRUB,76.9,100,RUB,7690.000000000001,1618475778.021799,24006,currency,1618475820.0

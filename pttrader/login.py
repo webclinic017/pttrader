@@ -3,7 +3,6 @@ from random import randint
 import trader
 from pathlib import Path
 import os
-import time
 
 
 def wait_logging():

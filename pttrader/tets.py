@@ -8,8 +8,12 @@ tickers_list = "USDRUB"
 
 timestamp = 1618474670.14237
 dt_object = datetime.datetime.fromtimestamp(timestamp)
-start_time = "2021-04-02"
-data = yf.download(tickers=tickers_list + '.ME', start=start_time, prepost=True, progress=False, interval="1m")
+start_time = "2021-04-15 17:59:38.854815"
+new_time = datetime.datetime.now().date
+
+date = datetime.datetime.fromisoformat(start_time)
+print(date)
+data = yf.download(tickers=tickers_list + '.ME', start=date, prepost=True, progress=False, interval="1m")
 
 # print(type(data))
 df = pd.DataFrame(data['Low'])

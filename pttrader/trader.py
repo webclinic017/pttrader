@@ -3,7 +3,7 @@ from pathlib import Path
 import datetime
 from random import randint
 import json
-import market
+
 
 pd.set_option('display.max_columns', None)
 
@@ -68,9 +68,10 @@ def wallet_add_money(account_id):
     currency = str()
     for key in wallet_current_data.keys():
         currency = key
+
     print("Enter amount to add:")
     amount = float(input(">>"))
-    date_time = ts
+    date_time = ct
     operation = "add"
     operation_id = randint(10000, 99999)  # random id generator
     df = wallet_history_data.append({"currency": currency,

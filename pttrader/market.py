@@ -85,15 +85,13 @@ def get_ticker_historical_data(order_data):
     ticker = order_data["ticker"]
     currency = order_data["currency"]
     created_at = order_data["created_at"]
-    instrument  =order_data['instrument']
+    instrument = order_data['instrument']
     # 1618307337.30397
 
-    timestamp = created_at
-    dt_object = datetime.datetime.fromtimestamp(timestamp)
-
+    created_at = datetime.datetime.fromisoformat(created_at)
     if currency == "RUB" and instrument == "stock":
-
-        data = yf.download(tickers=ticker + '.ME', start=dt_object, prepost=True, progress=False, interval="1m")
+        print("Try to get data for ", ticker, "instrument:", instrument)
+        data = yf.download(tickers=ticker + '.ME', start=created_at, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
 
@@ -102,9 +100,9 @@ def get_ticker_historical_data(order_data):
             df = pd.DataFrame(data['High'])
             return df['High']
 
-    if currency == "RUB" and ticker == "USDRUB":
-        print("Try to get data for ", ticker)
-        data = yf.download(tickers=ticker + '.ME', start=dt_object, prepost=True, progress=False, interval="1m")
+    elif currency == "RUB" and ticker == "USDRUB":
+        print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
+        data = yf.download(tickers=ticker + '.ME', start=created_at, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
 
@@ -114,7 +112,8 @@ def get_ticker_historical_data(order_data):
             return df['High']
 
     elif currency == "USD" and instrument == "stock":
-        data = yf.download(tickers=ticker, start=dt_object, prepost=True, progress=False, interval="1m")
+        print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
+        data = yf.download(tickers=ticker, start=created_at, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
             return df['Low']
