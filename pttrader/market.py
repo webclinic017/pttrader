@@ -100,7 +100,6 @@ def get_ticker_historical_data(order_data):
         data = yf.download(tickers=ticker + '.ME', start=start_date, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
-
             return df['Low']
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])

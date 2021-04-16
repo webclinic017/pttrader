@@ -112,12 +112,11 @@ def create_order_query(order_query):
                     create_orders_query(order_query)
                     return True
         elif portfolio_data.empty:
-            print(historical_operation_id,"Order not found")
+            print(historical_operation_id, "Order not found")
             return False
     else:
         print("Order is not ready, please repeat")
         return False
-
 
 
 def wallet_subtract_money_for_buy(order_data):
@@ -206,7 +205,7 @@ def wallet_subtract_money_for_buy(order_data):
                 # write operation to history
                 # pay attention that 0-amount for result as -xxx
                 df = wallet_history_data.append({"currency": currency,
-                                                 "amount": 0- amount,
+                                                 "amount": 0 - amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
@@ -235,7 +234,7 @@ def wallet_add_money_for_sell(order_data):
     order_price_total = order_data["order_price_total"]
     created_at = order_data["created_at"]
     operation_id = order_data["operation_id"]
-    instrument = order_data ["instrument"]
+    instrument = order_data["instrument"]
     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                    created_at, operation_id]
     print("Money to add:", order_price_total)
@@ -371,9 +370,9 @@ def check_new_orders(account_id):
             print("Checking order id:", order_data["operation_id"])
             print("Order created_at", order_data["created_at"])
             if order_data["user_id"] == account_id:
-                print("Order data:",order_data)
+                print("Order data:", order_data)
                 order_status_response = check_order_status(order_data)
-                print("Order status response:",order_status_response)
+                print("Order status response:", order_status_response)
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
 
@@ -387,7 +386,7 @@ def check_new_orders(account_id):
                     order_data.update({"order_done_at": order_status_response[1]})
                     trader.portfolio_history_add_order(order_data)
                     if order_data['order_type'] == "Sell":
-                        #add money to user_id wallet
+                        # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
 
                 elif not order_status_response[0]:
@@ -426,10 +425,9 @@ def check_order_status(order_data_next):
     # need to check all prices from order created_at to now or min max daily
     df = market.get_ticker_historical_data(order_data_next)
 
-
     if df is not None:
         for items in df:
-            hist_price = (round(items, ndigits=3))
+            hist_price = items
             # condition for buy order
             if order_type == "Buy" and order_price >= hist_price:
 
@@ -448,20 +446,21 @@ def check_order_status(order_data_next):
                       hist_price)
                 date_of_done = df.index[0]
 
-                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
+                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ',
+                                                            timespec='seconds')  # date_of_done.isoformat(' ')
                 flag = True
                 order_status = [flag, order_done_at]
                 return order_status
 
+        print("Wrong condition or not Done yet")
+        print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
 
-            print("Wrong condition or not Done yet")
-            print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
 
-            # need to store in another list for check iteration
-            order_done_at = created_at
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+        # need to store in another list for check iteration
+        order_done_at = created_at
+        flag = False
+        order_status = [flag, order_done_at]
+        return order_status
 
 
 
@@ -470,7 +469,9 @@ def check_order_status(order_data_next):
         print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
 
         # need to store in another list for check iteration
-        order_done_at = created_at
+        ct = datetime.datetime.utcnow()
+        date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
+        order_checked_at = date_time_iso
         flag = False
-        order_status = [flag, order_done_at]
+        order_status = [flag, order_checked_at]
         return order_status
