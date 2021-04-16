@@ -47,14 +47,13 @@ def market_manager(user_account_id):
         elif user_input == "buy":
             print("Try to buy")
             request_query = ["Buy", current_user_id]
-            broker.create_order_query(request_query)
-
+            print("Order, in orders query: ", broker.create_order_query(request_query))
             user_input = ""
         # sell command
         elif user_input == "sell":
             print("Try to sell")
             request_query = ["Sell", current_user_id]
-            broker.create_order_query(request_query)
+            print("Order, in orders query: ", broker.create_order_query(request_query))
 
             user_input = ""
         # wallet command to show current state of wallet

@@ -94,10 +94,10 @@ def get_ticker_historical_data(order_data):
     instrument = order_data['instrument']
     # 1618307337.30397
 
-    created_at = datetime.datetime.fromisoformat(created_at)
-    if currency == "RUB" and instrument == "stock":
+    start_date = datetime.datetime.fromisoformat(created_at)
+    if currency == "RUB" and instrument == "stocks":
         print("Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker + '.ME', start=created_at, prepost=True, progress=False, interval="1m")
+        data = yf.download(tickers=ticker + '.ME', start=start_date, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
 
@@ -108,18 +108,17 @@ def get_ticker_historical_data(order_data):
 
     elif currency == "RUB" and ticker == "USDRUB":
         print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker + '.ME', start=created_at, prepost=True, progress=False, interval="1m")
+        data = yf.download(tickers=ticker + '.ME', start=start_date, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
-
             return df['Low']
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
             return df['High']
 
-    elif currency == "USD" and instrument == "stock":
+    elif currency == "USD" and instrument == "stocks":
         print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker, start=created_at, prepost=True, progress=False, interval="1m")
+        data = yf.download(tickers=ticker, start=start_date, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
             return df['Low']

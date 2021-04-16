@@ -62,9 +62,10 @@ def create_order_query(order_query):
             # need to subtract money from wallet and hold before order will be done
             if wallet_subtract_money_for_buy(order_query):
                 create_orders_query(order_query)
-                return order_query
+                return True
             else:
                 print("Order is not ready, please repeat")
+                return False
 
     elif order_type == "Sell":
 
@@ -182,9 +183,9 @@ def wallet_subtract_money_for_buy(order_data):
             if wallet_current_data["RUB"] >= 0.:
                 with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
-
+                # pay attention that 0-amount for result as -xxx
                 df = wallet_history_data.append({"currency": currency,
-                                                 "amount": amount,
+                                                 "amount": 0 - amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
@@ -203,8 +204,9 @@ def wallet_subtract_money_for_buy(order_data):
                     file.write(json.dumps(wallet_current_data))
                 # TODO think about USDRUB price where to get it to store here
                 # write operation to history
+                # pay attention that 0-amount for result as -xxx
                 df = wallet_history_data.append({"currency": currency,
-                                                 "amount": amount,
+                                                 "amount": 0- amount,
                                                  "date_time": date_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
@@ -369,11 +371,11 @@ def check_new_orders(account_id):
             print("Checking order id:", order_data["operation_id"])
             print("Order created_at", order_data["created_at"])
             if order_data["user_id"] == account_id:
-
-                order_status = check_order_status(order_data)
-
-                if order_status[0]:
-                    print("Order ", order_data["operation_id"], "status is Done\n")
+                print("Order data:",order_data)
+                order_status_response = check_order_status(order_data)
+                print("Order status response:",order_status_response)
+                if order_status_response[0]:
+                    print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
 
                     # remove done order from order_query
                     new_order_list.remove(order_data)
@@ -382,13 +384,13 @@ def check_new_orders(account_id):
                         print("New orders_query changed ")
 
                     # add data about done order to potrtfolio_history
-                    order_data.update({"order_done_at": order_status[1]})
+                    order_data.update({"order_done_at": order_status_response[1]})
                     trader.portfolio_history_add_order(order_data)
                     if order_data['order_type'] == "Sell":
                         #add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
 
-                elif not order_status[0]:
+                elif not order_status_response[0]:
                     print("Order status = False")
                     order_status = False
 
@@ -422,40 +424,53 @@ def check_order_status(order_data_next):
     operation_id = order_data_next["operation_id"]
 
     # need to check all prices from order created_at to now or min max daily
-
     df = market.get_ticker_historical_data(order_data_next)
-    flag = False
 
-    for items in df:
-        hist_price = (round(items, ndigits=3))
-        # condition for buy order
-        if order_type == "Buy" and order_price >= hist_price:
 
-            date_of_done = df.index[0]
+    if df is not None:
+        for items in df:
+            hist_price = (round(items, ndigits=3))
+            # condition for buy order
+            if order_type == "Buy" and order_price >= hist_price:
 
-            # convert from timestamp to isoformat
-            order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
-            flag = True
+                date_of_done = df.index[0]
+
+                # convert from timestamp to isoformat
+                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds')
+                flag = True
+                order_status = [flag, order_done_at]
+                print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
+                      hist_price)
+                return order_status
+            # condition for sell order
+            elif order_type == "Sell" and order_price <= hist_price:
+                print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, "<=",
+                      hist_price)
+                date_of_done = df.index[0]
+
+                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
+                flag = True
+                order_status = [flag, order_done_at]
+                return order_status
+
+
+            print("Wrong condition or not Done yet")
+            print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
+
+            # need to store in another list for check iteration
+            order_done_at = created_at
+            flag = False
             order_status = [flag, order_done_at]
-            print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
-                  hist_price)
-            return order_status
-        # condition for sell order
-        elif order_type == "Sell" and order_price <= hist_price:
-            print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
-                  hist_price)
-            date_of_done = df.index[0]
-
-            order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
-            flag = True
-            order_status = [flag, order_done_at]
             return order_status
 
-    print("Wrong condition or not Done yet")
-    print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
 
-    # need to store in another list for check iteration
-    order_done_at = created_at
-    flag = False
-    order_status = [flag, order_done_at]
-    return order_status
+
+    else:
+        print("df is  None ")
+        print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
+
+        # need to store in another list for check iteration
+        order_done_at = created_at
+        flag = False
+        order_status = [flag, order_done_at]
+        return order_status
