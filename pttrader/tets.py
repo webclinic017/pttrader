@@ -41,13 +41,22 @@ import pandas as pd
 
 import  trader
 
-operation_id = 28377
-user_id = "99282"
+operation_id = 22572
+user_id = "68269"
 df = trader.portfolio_show_history(user_id)
 #df = portfolio_data.set_index("operation_id")
 data = (df[df["operation_id"] == operation_id])
+print(data)
 
-#print(data)
+if len(data) ==2 and len(data["order_type"].unique()) ==2:
+    print("order closed")
 
-amount = (data["amount"].values)
-print(int(amount))
+    #print(len(data["order_type"].unique()))
+# amount = (data["amount"].values)
+# print(int(amount))
+
+new_time = datetime.datetime.isoformat(datetime.datetime.now(),sep=' ')
+created_at = datetime.datetime.fromisoformat(new_time)
+
+print(new_time)
+print(created_at)

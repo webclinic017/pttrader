@@ -28,10 +28,16 @@ def get_ticker_price(order_data):
     return current price of the ticker
     """
     stock_data = get_stock_data(order_data)
-    current_price_data = stock_data['price']
-    current_price = current_price_data['value']
+    key = 'code'
+    if stock_data.get(key) is not None:
+        if stock_data['code'] == 'TickerNotFound':
+            code = "TickerNotFound"
+            return code
+    else:
+        current_price_data = stock_data['price']
+        current_price = current_price_data['value']
 
-    return current_price
+        return current_price
 
 
 def get_ticker_lot_size(order_data):

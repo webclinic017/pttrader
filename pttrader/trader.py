@@ -56,7 +56,7 @@ def wallet_add_money(account_id):
     """
 
     # ct stores current time
-    ct = datetime.datetime.now()
+    ct = datetime.datetime.utcnow()
     date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     # check if this file exist
     is_wallet_history_exist(account_id)

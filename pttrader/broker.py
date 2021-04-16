@@ -23,7 +23,7 @@ def create_order_query(order_query):
     :return: order query
     """
     # ct stores current time
-    ct = datetime.datetime.now()
+    ct = datetime.datetime.utcnow()
     date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     order_type = order_query[0]
     print("Enter ticker name:")
@@ -34,71 +34,88 @@ def create_order_query(order_query):
         instrument = "stocks"
     order_data = [instrument, ticker]
 
-
     if order_type == "Buy":
-        print("Current price:", market.get_ticker_price(order_data))
-        print("price increment is:", market.get_ticker_min_price_increment(order_data))
-        print("Enter price for Buy operation:")
-        order_price = float(input(">>"))
-        lot_size = market.get_ticker_lot_size(order_data)
-        print("1 lot size:", lot_size)
-        print("Enter amount in lot's:")
-        amount = int(input())
-        currency = market.get_ticker_currency(order_data)
-        order_price_total = order_price * lot_size * amount
-        created_at = date_time_iso
-        user_id = order_query[1]
-        # random id generator
-        operation_id = randint(10000, 99999)
-        order_status = False
-        order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status]
-        print("You create buy order: ", order_query)
-        # need to subtract money from wallet and hold before order will be done
-        if wallet_subtract_money_for_buy(order_query):
-            create_orders_query(order_query)
-            return order_query
+
+        current_ticker_price = market.get_ticker_price(order_data)
+        print("Current price:", current_ticker_price)
+        if current_ticker_price == "TickerNotFound":
+            print(ticker, current_ticker_price, "return False")
+            return False
         else:
-            print("Order is not ready, please repeat")
+            print("price increment is:", market.get_ticker_min_price_increment(order_data))
+            print("Enter price for Buy operation:")
+            order_price = float(input(">>"))
+            lot_size = market.get_ticker_lot_size(order_data)
+            print("1 lot size:", lot_size)
+            print("Enter amount in lot's:")
+            amount = int(input())
+            currency = market.get_ticker_currency(order_data)
+            order_price_total = order_price * lot_size * amount
+            created_at = date_time_iso
+            user_id = order_query[1]
+            # random id generator
+            operation_id = randint(10000, 99999)
+            order_status = False
+            order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                           created_at, operation_id, instrument, order_status]
+            print("You create buy order: ", order_query)
+            # need to subtract money from wallet and hold before order will be done
+            if wallet_subtract_money_for_buy(order_query):
+                create_orders_query(order_query)
+                return order_query
+            else:
+                print("Order is not ready, please repeat")
 
     elif order_type == "Sell":
 
         print("Enter operation id to sell ")
         historical_operation_id = int(input(">>"))
         user_id = order_query[1]
-        portfolio_data = trader.portfolio_show_history(user_id)
+        portfolio__all_data = trader.portfolio_show_history(user_id)
+        portfolio_data = (portfolio__all_data[portfolio__all_data["operation_id"] == historical_operation_id])
         if not portfolio_data.empty:
-            portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == historical_operation_id]
-            print("Current price:", market.get_ticker_price(order_data))
-            print("price increment is:", market.get_ticker_min_price_increment(order_data))
-            print("Enter price for Sell operation:")
-            order_price = float(input(">>"))
-            lot_size = market.get_ticker_lot_size(order_data)
-            print("1 lot size:", lot_size)
-            print("Enter amount in lot's:")
+            # check if order have one operation_id for buy and sell order early
 
-            amount = int(portfolio_order_data["amount"].values)
-            print("amount:", amount)
-            currency = market.get_ticker_currency(order_data)
-            order_price_total = order_price * lot_size * amount
-            created_at = date_time_iso
+            if len(portfolio_data) == 2 and len(portfolio_data["order_type"].unique()) == 2:
+                print("Order: ", historical_operation_id, "closed completely")
+                return False
+            else:
+                portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == historical_operation_id]
+                current_ticker_price = market.get_ticker_price(order_data)
+                print("Current price:", current_ticker_price)
+                if current_ticker_price == "TickerNotFound":
+                    print(ticker, current_ticker_price, "return False")
+                    return False
+                else:
+                    print("price increment is:", market.get_ticker_min_price_increment(order_data))
+                    print("Enter price for Sell operation:")
+                    order_price = float(input(">>"))
+                    lot_size = market.get_ticker_lot_size(order_data)
+                    print("1 lot size:", lot_size)
+                    print("Enter amount in lot's:")
 
-            # use historical id to easy close this orders in future
-            operation_id = historical_operation_id
-            order_status = False
-            order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                           created_at, operation_id, instrument, order_status]
-            print("You create sell order: ", order_query)
-            # need to add money to wallet after order will be done
-            # check if trader portfolio have data for sell
-            create_orders_query(order_query)
-            return True
+                    amount = int(portfolio_order_data["amount"].values)
+                    print("amount:", amount)
+                    currency = market.get_ticker_currency(order_data)
+                    order_price_total = order_price * lot_size * amount
+                    created_at = date_time_iso
+
+                    # use historical id to easy close this orders in future
+                    operation_id = historical_operation_id
+                    order_status = False
+                    order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                                   created_at, operation_id, instrument, order_status]
+                    print("You create sell order: ", order_query)
+                    # need to add money to wallet after order will be done
+                    # check if trader portfolio have data for sell
+                    create_orders_query(order_query)
+                    return True
         elif portfolio_data.empty:
-            print( historical_operation_id ,"Order not found")
-
-        else:
-            print("Order is not ready, please repeat")
+            print(historical_operation_id,"Order not found")
             return False
+    else:
+        print("Order is not ready, please repeat")
+        return False
 
 
 
@@ -118,10 +135,9 @@ def wallet_subtract_money_for_buy(order_data):
                    created_at, operation_id, instrument, order_status]
 
     print("Money to hold from wallet:", order_price_total)
-    print(order_query)
 
     # ct stores current time
-    ct = datetime.datetime.now()
+    ct = datetime.datetime.utcnow()
     date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
 
     account_id = user_id
@@ -159,7 +175,7 @@ def wallet_subtract_money_for_buy(order_data):
             print(trader.wallet_show_current(account_id))
             return False
 
-    elif instrument == "stock":
+    elif instrument == "stocks":
 
         if currency == "RUB":
             wallet_current_data["RUB"] -= amount
@@ -225,7 +241,7 @@ def wallet_add_money_for_sell(order_data):
 
     # ct stores current time
 
-    ct = datetime.datetime.now()
+    ct = datetime.datetime.utcnow()
     date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
     account_id = user_id
     # check if this file exist
@@ -300,7 +316,7 @@ def create_orders_query(order_query):
             with open('files/orders_query.txt', 'w') as file:
                 file.write(json.dumps(data, default=str))
 
-            return
+            return True
 
         elif Path("files").is_dir():
             time.sleep(1)
@@ -315,10 +331,10 @@ def create_orders_query(order_query):
             with open('files/orders_query.txt', 'w+') as file:
                 file.write(json.dumps(first_data, default=str))
                 print("New order_query_created")
-            return
+            return True
 
     else:
-
+        # create folder if not exist
         os.mkdir("files")
 
         # add new order to local database
@@ -416,9 +432,9 @@ def check_order_status(order_data_next):
         if order_type == "Buy" and order_price >= hist_price:
 
             date_of_done = df.index[0]
-            print("Type of date of done", type(date_of_done))
+
             # convert from timestamp to isoformat
-            order_done_at = date_of_done.isoformat(' ')
+            order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
             flag = True
             order_status = [flag, order_done_at]
             print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
@@ -430,7 +446,7 @@ def check_order_status(order_data_next):
                   hist_price)
             date_of_done = df.index[0]
 
-            order_done_at = date_of_done.isoformat(' ')
+            order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds') #date_of_done.isoformat(' ')
             flag = True
             order_status = [flag, order_done_at]
             return order_status
