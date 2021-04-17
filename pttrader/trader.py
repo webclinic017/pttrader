@@ -8,9 +8,11 @@ import sys
 
 pd.set_option('display.max_columns', None)
 
+
 def get_user_input_data():
     user_input = input(">>")
     return user_input
+
 
 def generate_random_id():
     """
@@ -19,6 +21,7 @@ def generate_random_id():
     """
     random_id = randint(10000, 99999)
     return random_id
+
 
 class Account:
     """
@@ -33,7 +36,7 @@ class Account:
         self.account_id = account_id
 
 
-# tested now
+
 def wallet_create_new(account_id):
     """
     This function creates two .csv files:
@@ -57,7 +60,6 @@ def wallet_create_new(account_id):
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return False
-
 
 
 def wallet_add_money(account_id):
@@ -171,8 +173,6 @@ def wallet_show_current(account_id):
         return
 
 
-
-
 def wallet_show_history(account_id):
     """
     This function show history of wallet, stored in .csv file
@@ -190,6 +190,7 @@ def wallet_show_history(account_id):
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return
 
+
 def is_wallet_current_exist(account_id):
     wallet_data = Path("files/wallet_current_" + str(account_id) + ".txt")
     if Path("files").is_dir() and wallet_data.is_file():
@@ -199,6 +200,7 @@ def is_wallet_current_exist(account_id):
               "New current wallet will be created \n"
               )
         return False
+
 
 def is_wallet_history_exist(account_id):
     wallet_data = Path("files/wallet_history_" + str(account_id) + ".csv")
