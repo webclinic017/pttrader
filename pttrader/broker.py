@@ -59,6 +59,7 @@ def create_order_query(order_query):
             order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                            created_at, operation_id, instrument, order_status]
             print("You create buy order: ", order_query)
+            # need to subtract HOLD  USD from portfolio and hold before order will be done
             # need to subtract money from wallet and hold before order will be done
             if wallet_subtract_money_for_buy(order_query):
                 create_orders_query(order_query)
@@ -382,9 +383,10 @@ def check_new_orders(account_id):
                         file.write(json.dumps(new_order_list))
                         print("New orders_query changed ")
 
-                    # add data about done order to potrtfolio_history
+
                     order_data.update({"order_done_at": order_status_response[1]})
-                    trader.portfolio_history_add_order(order_data)
+                    # add data about done order to potrfolio_current
+                    trader.portfolio_current_add_order(order_data)
                     if order_data['order_type'] == "Sell":
                         # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)

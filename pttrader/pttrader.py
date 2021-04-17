@@ -4,6 +4,9 @@ import trader
 import broker
 
 
+
+
+
 def market_manager(user_account_id):
     """
     This is main cycle
@@ -14,7 +17,8 @@ def market_manager(user_account_id):
     user_logged_in = True
     print("Type: Help, to see available commands or hit Enter to pass")
     user_input = input(">>")
-    while user_logged_in:  # waiting for user commands and checking orders status
+    # waiting for user commands and checking orders status
+    while user_logged_in:
 
         # there list of available user's commands:
         if user_input == "Help" or user_input == "help":
@@ -78,7 +82,7 @@ def market_manager(user_account_id):
             user_input = ""
         # portfolio show history
         elif user_input == "portfolio history":
-            #trader.portfolio_show_history(current_user_id)
+            # trader.portfolio_show_history(current_user_id)
 
             print(trader.portfolio_show_history(current_user_id))
             user_input = ""
@@ -101,3 +105,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# TODO change save to portfolio_curent and done orders moves tp portfolio_history
