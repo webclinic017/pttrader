@@ -4,6 +4,7 @@ import trader
 from pathlib import Path
 import os
 
+# TODO refactor login module same as trader
 
 def wait_logging():
     wait = True
@@ -26,9 +27,8 @@ def wait_logging():
                 answer = input(">>")
                 if answer == "Yes":
 
-                    # print("Login",login,"Id", account_id)
                     new_account_id = create_new_account(login)
-                    print("New login", login, "and", new_account_id, "created 2")
+                    print("New login", login, "and", new_account_id, "created")
 
                     return checking_traders_accounts_file(login, new_account_id)
                     # cycle going again and ends after return ID
@@ -47,7 +47,7 @@ def wait_logging():
         else:
             print("First time running")
             new_account_id = create_new_account(login)
-            print("New login", login, "and", new_account_id, "created 1")
+            print("New login", login, "and", new_account_id, "created")
             return checking_traders_accounts_file(login, new_account_id)
 
 

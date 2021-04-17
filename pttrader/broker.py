@@ -22,12 +22,12 @@ def create_order_query(order_query):
     created_at
     :return: order query
     """
-    # ct stores current time
-    ct = datetime.datetime.utcnow()
-    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
+    # TODO change all dates to one standard as below
+    current_time = datetime.datetime.utcnow()
+    current_time_iso = datetime.datetime.isoformat(current_time, sep=' ', timespec='seconds')
     order_type = order_query[0]
     print("Enter ticker name:")
-    ticker = str(input(">>"))
+    ticker = trader.get_user_input_data()
     if ticker == "USDRUB":
         instrument = "currency"
     else:
@@ -44,6 +44,7 @@ def create_order_query(order_query):
         else:
             print("price increment is:", market.get_ticker_min_price_increment(order_data))
             print("Enter price for Buy operation:")
+            # TODO change all input() to one function trader.get_user_input_data()
             order_price = float(input(">>"))
             lot_size = market.get_ticker_lot_size(order_data)
             print("1 lot size:", lot_size)
@@ -51,10 +52,10 @@ def create_order_query(order_query):
             amount = int(input())
             currency = market.get_ticker_currency(order_data)
             order_price_total = order_price * lot_size * amount
-            created_at = date_time_iso
+            created_at = current_time_iso
             user_id = order_query[1]
-            # random id generator
-            operation_id = randint(10000, 99999)
+            operation_id = trader.generate_random_id()
+            # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
             order_status = False
             order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                            created_at, operation_id, instrument, order_status]
@@ -100,7 +101,7 @@ def create_order_query(order_query):
                     print("amount:", amount)
                     currency = market.get_ticker_currency(order_data)
                     order_price_total = order_price * lot_size * amount
-                    created_at = date_time_iso
+                    created_at = current_time_iso
 
                     # use historical id to easy close this orders in future
                     operation_id = historical_operation_id
@@ -121,8 +122,12 @@ def create_order_query(order_query):
 
 
 def wallet_subtract_money_for_buy(order_data):
+    """
+        order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                   created_at, operation_id, instrument, order_status]
+    """
     order_type = order_data[0]
-    user_id = order_data[1]
+    account_id = order_data[1]
     ticker = order_data[2]
     order_price = order_data[3]
     amount = order_data[4]
@@ -132,36 +137,29 @@ def wallet_subtract_money_for_buy(order_data):
     operation_id = order_data[8]
     instrument = order_data[9]
     order_status = order_data[10]
-    order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                   created_at, operation_id, instrument, order_status]
+
 
     print("Money to hold from wallet:", order_price_total)
 
     # ct stores current time
-    ct = datetime.datetime.utcnow()
-    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
+    current_time = datetime.datetime.utcnow()
+    current_time_iso = datetime.datetime.isoformat(current_time, sep=' ', timespec='seconds')
 
-    account_id = user_id
-    # check if this file exist
-    trader.is_wallet_history_exist(account_id)
-    wallet_history_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
-    amount = order_price_total
-    date_time = date_time_iso
+    wallet_history_data = trader.wallet_show_history(account_id)
+
     operation = "buy"
     # second operation will calculate and write new data to current state of wallet
-    with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
-        data = file.read()
-    wallet_current_data = json.loads(data)
+    wallet_current_data = trader.wallet_show_current(account_id)
 
     if instrument == "currency":
-        wallet_current_data["RUB"] -= amount
+        wallet_current_data["RUB"] -= order_price_total
         if wallet_current_data["RUB"] >= 0.:
-            with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                 file.write(json.dumps(wallet_current_data))
-            # pay attention that 0-amount for result as -xxx
+            # pay attention that 0-order_price_total for result as -xxx
             df = wallet_history_data.append({"currency": currency,
-                                             "amount": 0 - amount,
-                                             "date_time": date_time,
+                                             "amount": 0 - order_price_total,
+                                             "date_time": current_time_iso,
                                              "operation": operation,
                                              "operation_id": operation_id},
                                             ignore_index=True)
@@ -179,14 +177,14 @@ def wallet_subtract_money_for_buy(order_data):
     elif instrument == "stocks":
 
         if currency == "RUB":
-            wallet_current_data["RUB"] -= amount
+            wallet_current_data["RUB"] -= order_price_total
             if wallet_current_data["RUB"] >= 0.:
-                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
                 # pay attention that 0-amount for result as -xxx
                 df = wallet_history_data.append({"currency": currency,
-                                                 "amount": 0 - amount,
-                                                 "date_time": date_time,
+                                                 "amount": 0 - order_price_total,
+                                                 "date_time": current_time_iso,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -198,26 +196,11 @@ def wallet_subtract_money_for_buy(order_data):
                 print(trader.wallet_show_current(account_id))
                 return False
         elif currency == "USD":
-            wallet_current_data["USD"] -= amount
-            if wallet_current_data["USD"] >= 0.:
-                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
-                    file.write(json.dumps(wallet_current_data))
-                # TODO think about USDRUB price where to get it to store here
-                # write operation to history
-                # pay attention that 0-amount for result as -xxx
-                df = wallet_history_data.append({"currency": currency,
-                                                 "amount": 0 - amount,
-                                                 "date_time": date_time,
-                                                 "operation": operation,
-                                                 "operation_id": operation_id},
-                                                ignore_index=True)
-
-                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-                return True
-            elif wallet_current_data["USD"] < 0.:
-                print("You don't have enough money for this operation")
-                print(trader.wallet_show_current(account_id))
-                return False
+            # TODO 1) calculate amount USDRUB (order_price_total) to hold in USD from
+            # TODO 2) if portfolio_current have USDRUB, than hold amount from this buy orders and block them to sell
+            # TODO 3) add additional parameter to portfolio_current that show status
+            print("you try to buy stocks in USD currency, this feature is not ready now")
+            return False
 
 
 def wallet_add_money_for_sell(order_data):

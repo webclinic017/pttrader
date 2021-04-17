@@ -3,3 +3,4 @@
 pttrader/dist/*
 pttrader/build/*
 pttrader/dist/pttrader/*
+/pttrader/pttrader.spec

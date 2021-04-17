@@ -43,22 +43,32 @@ def wallet_create_new(account_id):
     first for storing wallet operations history
     and second for current wallet state
     """
-    wallet_history_df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
-    wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+
 
     # get input data from user
     print("Enter main currency for your broker RUB or USD")
+    print("Only RUB supported now.")
     main_currency = get_user_input_data()
+    if main_currency == "RUB":
 
-    wallet_current_data = {main_currency: 0.}
-    with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
-        file.write(json.dumps(wallet_current_data))
+        wallet_current_data = {main_currency: 0.}
+        with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
+            file.write(json.dumps(wallet_current_data))
 
-    # check if files are created
-    if is_wallet_history_exist(account_id) and is_wallet_current_exist(account_id):
-        return True
+        wallet_history_df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
+        wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+
+        # check if files are created
+        if is_wallet_history_exist(account_id) and is_wallet_current_exist(account_id):
+            return True
+        else:
+            print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+            return False
+    elif main_currency == "USD":
+        print("Sorry, only RUB supported now.")
+        return False
     else:
-        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        print("Sorry, only RUB supported now. You type:", main_currency)
         return False
 
 
@@ -82,28 +92,42 @@ def wallet_add_money(account_id):
             currency = key
         # get input data from user
         print("Enter amount to add:")
-        amount = get_user_input_data()
+        amount = float(get_user_input_data())
         operation = "add"
         # random id generator foo
         operation_id = generate_random_id()
-        df = wallet_history_data.append({"currency": currency,
-                                         "amount": amount,
-                                         "date_time": current_time_iso,
-                                         "operation": operation,
-                                         "operation_id": operation_id},
-                                        ignore_index=True)
 
-        df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
         # second operation will calculate and write new data to current state of wallet
 
         if currency == "RUB":
             wallet_current_data["RUB"] += amount
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": amount,
+                                             "date_time": current_time_iso,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
+
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # write new data to wallet_current
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+
+            return True
         elif currency == "USD":
             wallet_current_data["USD"] += amount
-        # write new data to wallet_current
-        with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
-            file.write(json.dumps(wallet_current_data))
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": amount,
+                                             "date_time": current_time_iso,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
+
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # write new data to wallet_current
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
     elif not is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
         if wallet_create_new(account_id):
             wallet_history_data = wallet_show_history(account_id)
@@ -118,24 +142,37 @@ def wallet_add_money(account_id):
             operation = "add"
             # random id generator foo
             operation_id = generate_random_id()
-            df = wallet_history_data.append({"currency": currency,
-                                             "amount": amount,
-                                             "date_time": current_time_iso,
-                                             "operation": operation,
-                                             "operation_id": operation_id},
-                                            ignore_index=True)
 
-            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
             # second operation will calculate and write new data to current state of wallet
 
             if currency == "RUB":
                 wallet_current_data["RUB"] += amount
+                df = wallet_history_data.append({"currency": currency,
+                                                 "amount": amount,
+                                                 "date_time": current_time_iso,
+                                                 "operation": operation,
+                                                 "operation_id": operation_id},
+                                                ignore_index=True)
+
+                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+                return True
             elif currency == "USD":
                 wallet_current_data["USD"] += amount
-            # write new data to wallet_current
-            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
-                file.write(json.dumps(wallet_current_data))
+                df = wallet_history_data.append({"currency": currency,
+                                                 "amount": amount,
+                                                 "date_time": current_time_iso,
+                                                 "operation": operation,
+                                                 "operation_id": operation_id},
+                                                ignore_index=True)
+
+                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+                return True
+
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return
