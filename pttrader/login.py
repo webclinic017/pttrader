@@ -1,3 +1,10 @@
+
+"""
+This module use for user logging
+
+"""
+
+
 import json
 from random import randint
 import trader
