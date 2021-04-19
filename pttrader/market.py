@@ -20,7 +20,7 @@ def get_stock_data(order_data):
     req = requests.get(url, headers=headers)
     resp = req.json()
     stock_data = resp["payload"]
-    
+
     return stock_data
 
 
@@ -74,11 +74,18 @@ def get_ticker_currency(order_data):
     return ticker currency
 
     """
-    stock_data = get_stock_data(order_data)
-    current_price_data = stock_data['price']
-    ticker_currency = current_price_data['currency']
 
-    return ticker_currency  # return current price of the ticker
+    stock_data = get_stock_data(order_data)
+    key = 'code'
+    if stock_data.get(key) is not None:
+        if stock_data['code'] == 'TickerNotFound':
+            code = "TickerNotFound"
+            return code
+    else:
+        current_price_data = stock_data['price']
+        ticker_currency = current_price_data['currency']
+
+        return ticker_currency  # return current price of the ticker
 
 def get_ticker_historical_data(order_data):
 
@@ -91,38 +98,123 @@ def get_ticker_historical_data(order_data):
     """
     order_type = order_data["order_type"]
     ticker = order_data["ticker"]
+    order_price = order_data["order_price"]
     currency = order_data["currency"]
     created_at = order_data["created_at"]
     instrument = order_data['instrument']
-    # 1618307337.30397
 
-    start_date = datetime.datetime.fromisoformat(created_at)
+    start_time = pd.to_datetime(created_at) # receive data for all day
+
     if currency == "RUB" and instrument == "stocks":
-        print("Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker + '.ME', start=start_date, prepost=True, progress=False, interval="1m")
+        print("Try to get data for ", ticker, "instrument:", instrument, "created_at", created_at)
+        data = yf.download(tickers=ticker + '.ME', start=start_time, prepost=True, progress=False, interval="1m")
+        #print("data", data)
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
-            return df['Low']
+            #print("df", df)
+            filtered_by_time = (df[df.index >= created_at])
+            if not filtered_by_time.empty:
+                #print("filtered by time at market", filtered_by_time)
+                # condition to buy order become True
+                filtered_by_price = (filtered_by_time[filtered_by_time['Low'] <= order_price])
+                if not filtered_by_price.empty:
+                    print("first data: ", filtered_by_price.index[0])
+                    print("filtered first price", filtered_by_price.iloc[0, 0])
+
+                    time_to_convert = (filtered_by_price.index[0])
+                    order_done_at = time_to_convert.tz_convert("Europe/Moscow")
+                    flag = True
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+                elif filtered_by_price.empty:
+                    order_done_at = created_at
+                    flag = False
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+            elif filtered_by_time.empty:
+                order_done_at = created_at
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
+
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
             return df['High']
 
     elif currency == "RUB" and ticker == "USDRUB":
         print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker + '.ME', start=start_date, prepost=True, progress=False, interval="1m")
+        data = yf.download(tickers=ticker + '.ME', start=start_time, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
-            return df['Low']
+            # print("df", df)
+            filtered_by_time = (df[df.index >= created_at])
+            if not filtered_by_time.empty:
+                # print("filtered by time at market", filtered_by_time)
+                # condition to buy order become True
+                filtered_by_price = (filtered_by_time[filtered_by_time['Low'] <= order_price])
+                if not filtered_by_price.empty:
+                    print("first data: ", filtered_by_price.index[0])
+                    print("filtered first price", filtered_by_price.iloc[0, 0])
+
+                    time_to_convert = (filtered_by_price.index[0])
+                    order_done_at = time_to_convert.tz_convert("Europe/Moscow")
+                    flag = True
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+                elif filtered_by_price.empty:
+                    order_done_at = created_at
+                    flag = False
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+            elif filtered_by_time.empty:
+                order_done_at = created_at
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
+
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
             return df['High']
 
+
     elif currency == "USD" and instrument == "stocks":
         print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
-        data = yf.download(tickers=ticker, start=start_date, prepost=True, progress=False, interval="1m")
+        data = yf.download(tickers=ticker, start=start_time, prepost=True, progress=False, interval="1m")
         if order_type == "Buy":
             df = pd.DataFrame(data['Low'])
-            return df['Low']
+            # print("df", df)
+            filtered_by_time = (df[df.index >= created_at])
+            if not filtered_by_time.empty:
+                # print("filtered by time at market", filtered_by_time)
+                # condition to buy order become True
+                filtered_by_price = (filtered_by_time[filtered_by_time['Low'] <= order_price])
+                if not filtered_by_price.empty:
+                    print("first data: ", filtered_by_price.index[0])
+                    print("filtered first price", filtered_by_price.iloc[0, 0])
+
+                    time_to_convert = (filtered_by_price.index[0])
+                    order_done_at = time_to_convert.tz_convert("Europe/Moscow")
+                    flag = True
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+                elif filtered_by_price.empty:
+                    order_done_at = created_at
+                    flag = False
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+            elif filtered_by_time.empty:
+                order_done_at = created_at
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
+
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
             return df['High']
+

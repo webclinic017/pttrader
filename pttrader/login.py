@@ -25,17 +25,20 @@ def user_logging(login, account_id):
                 user_input = trader.get_user_input_data()
                 # user type "new"
                 if user_input == "new":
-                    print("New login is", login)
+
                     account_id = add_user_to_traders_account_file(login)
-                    print("account id", account_id)
+                    print("New account created!"
+                          "\nRemember your Login:", login,
+                          "\nAccount id:", account_id
+                          )
                     return account_id
                 elif user_input == "":  # user hit Enter
-                    print("retype your login and account id ")
-                    login = trader.get_user_input_data()
-                    account_id = trader.get_user_input_data()
+                    print("Retype your Login and Account id ")
+                    login = str(input("Login >>"))
+                    account_id = int(input("Account id >>"))
 
                 else:
-                    print("you type:", user_input)
+                    print("You type:", user_input)
 
         # this is new login and account id
         elif not trader_accounts_file_exist():
@@ -43,6 +46,10 @@ def user_logging(login, account_id):
             if create_traders_accounts_file():
 
                 account_id = add_user_to_traders_account_file(login)
+                print("New account created!"
+                      "\nRemember your Login:", login,
+                      "\nAccount id:", account_id
+                      )
                 return account_id
 
 

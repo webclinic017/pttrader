@@ -4,7 +4,7 @@ import datetime
 from random import randint
 import json
 import sys
-
+import broker
 pd.set_option('display.max_columns', None)
 
 
@@ -64,8 +64,8 @@ def wallet_add_money(account_id):
     second operation will calculate data and add to current wallet data
     """
 
-    current_time = datetime.datetime.utcnow()
-    current_time_iso = datetime.datetime.isoformat(current_time, sep=' ', timespec='seconds')
+    current_time = broker.get_current_time()
+
     # check if this file exist
     if is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
         wallet_history_data = wallet_show_history(account_id)
@@ -87,7 +87,7 @@ def wallet_add_money(account_id):
             wallet_current_data["RUB"] += amount
             df = wallet_history_data.append({"currency": currency,
                                              "amount": amount,
-                                             "date_time": current_time_iso,
+                                             "date_time": current_time,
                                              "operation": operation,
                                              "operation_id": operation_id},
                                             ignore_index=True)
@@ -102,7 +102,7 @@ def wallet_add_money(account_id):
             wallet_current_data["USD"] += amount
             df = wallet_history_data.append({"currency": currency,
                                              "amount": amount,
-                                             "date_time": current_time_iso,
+                                             "date_time": current_time,
                                              "operation": operation,
                                              "operation_id": operation_id},
                                             ignore_index=True)
@@ -132,7 +132,7 @@ def wallet_add_money(account_id):
                 wallet_current_data["RUB"] += amount
                 df = wallet_history_data.append({"currency": currency,
                                                  "amount": amount,
-                                                 "date_time": current_time_iso,
+                                                 "date_time": current_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -145,7 +145,7 @@ def wallet_add_money(account_id):
                 wallet_current_data["USD"] += amount
                 df = wallet_history_data.append({"currency": currency,
                                                  "amount": amount,
-                                                 "date_time": current_time_iso,
+                                                 "date_time": current_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -280,6 +280,7 @@ def is_portfolio_history_exist(account_id):
 
 def portfolio_current_add_order(data):
     """
+    data:
     {'order_type': 'Buy', 'user_id': 39460, 'ticker': 'NMTP', 'order_price': 7.8, 'amount': 10, 'currency': 'RUB',
      'order_price_total': 7800.0, 'created_at': 1618331390.686862, 'operation_id': 73483, 'instrument': 'stocks',
      'order_status': False, 'order_done_at': 1618246800.0}
@@ -323,8 +324,11 @@ def portfolio_current_add_order(data):
 
             df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
             # check if order is write to the file
-            data = portfolio_current_data(account_id)
-            if data[data["operation_id"] == operation_id]:
+            data = portfolio_show_current(account_id)
+
+            check_portfolio_data = (data[data["operation_id"] == operation_id])
+
+            if not check_portfolio_data.empty:
                 return True
     else:
         print("Something wrong, check: portfolio_current_add_order ")

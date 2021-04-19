@@ -8,6 +8,14 @@ from pathlib import Path
 import os
 import time
 import datetime
+from dateutil import tz
+
+
+def get_current_time():
+    Moscow_tz = tz.gettz("Europe/Moscow")
+    time_to_moscow = datetime.datetime.now(tz=Moscow_tz)
+    current_time = pd.to_datetime(time_to_moscow)
+    return current_time
 
 
 # input data may be primary from trader: buy request, sell request
@@ -23,8 +31,7 @@ def create_order_query(order_query):
     :return: order query
     """
     # TODO change all dates to one standard as below
-    current_time = datetime.datetime.utcnow()
-    current_time_iso = datetime.datetime.isoformat(current_time, sep=' ', timespec='seconds')
+
     order_type = order_query[0]
     print("Enter ticker name:")
     ticker = trader.get_user_input_data()
@@ -33,57 +40,98 @@ def create_order_query(order_query):
     else:
         instrument = "stocks"
     order_data = [instrument, ticker]
+    currency = market.get_ticker_currency(order_data)
+    if currency == "TickerNotFound":
+        print(ticker, currency, "return False")
+        return False
+    current_ticker_price = market.get_ticker_price(order_data)
+    print("Current price:", current_ticker_price, "currency:",currency)
+    print("price increment is:", market.get_ticker_min_price_increment(order_data))
+    if current_ticker_price == "TickerNotFound":
+        print(ticker, current_ticker_price, "return False")
+        return False
+    # TODO another condition to buy stocks in USD currency
+    if order_type == "Buy" and currency == "RUB":
 
-    if order_type == "Buy":
+        print("price increment is:", market.get_ticker_min_price_increment(order_data))
+        print("Enter price for Buy operation:")
+        # TODO change all input() to one function trader.get_user_input_data()
+        order_price = float(input(">>"))
+        lot_size = market.get_ticker_lot_size(order_data)
+        print("1 lot size:", lot_size)
+        print("Enter amount in lot's:")
+        amount = int(input(">>"))
 
-        current_ticker_price = market.get_ticker_price(order_data)
-        print("Current price:", current_ticker_price)
-        if current_ticker_price == "TickerNotFound":
-            print(ticker, current_ticker_price, "return False")
-            return False
+        order_price_total = order_price * lot_size * amount
+        created_at = get_current_time()
+        user_id = order_query[1]
+        operation_id = trader.generate_random_id()
+        # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
+        order_status = False
+        order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                       created_at, operation_id, instrument, order_status]
+        print("You create buy order: ", order_query)
+        # need to subtract HOLD  USD from portfolio and hold before order will be done
+        # need to subtract money from wallet and hold before order will be done
+        if wallet_subtract_money_for_buy(order_query):
+            create_orders_query(order_query)
+            return True
         else:
-            print("price increment is:", market.get_ticker_min_price_increment(order_data))
-            print("Enter price for Buy operation:")
-            # TODO change all input() to one function trader.get_user_input_data()
-            order_price = float(input(">>"))
-            lot_size = market.get_ticker_lot_size(order_data)
-            print("1 lot size:", lot_size)
-            print("Enter amount in lot's:")
-            amount = int(input())
-            currency = market.get_ticker_currency(order_data)
-            order_price_total = order_price * lot_size * amount
-            created_at = current_time_iso
-            user_id = order_query[1]
-            operation_id = trader.generate_random_id()
-            # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
-            order_status = False
-            order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                           created_at, operation_id, instrument, order_status]
-            print("You create buy order: ", order_query)
-            # need to subtract HOLD  USD from portfolio and hold before order will be done
-            # need to subtract money from wallet and hold before order will be done
-            if wallet_subtract_money_for_buy(order_query):
-                create_orders_query(order_query)
-                return True
-            else:
-                print("Order is not ready, please repeat")
-                return False
+            print("Order is not ready, please repeat")
+            return False
 
-    elif order_type == "Sell":
+    elif order_type == "Buy" and currency == "USD":
+
+
+        print("Enter price for Buy operation:")
+        # TODO change all input() to one function trader.get_user_input_data()
+        order_price = float(input(">>"))
+        lot_size = market.get_ticker_lot_size(order_data)
+        print("1 lot size:", lot_size)
+        print("Enter amount in lot's:")
+        amount = int(input(">>"))
+
+        order_price_total = order_price * lot_size * amount
+        created_at = get_current_time()
+        user_id = order_query[1]
+        operation_id = trader.generate_random_id()
+        # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
+        order_status = False
+        order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                       created_at, operation_id, instrument, order_status]
+        print("You create buy order: ", order_query)
+        # need to subtract HOLD  USD from portfolio and hold before order will be done
+        # need to subtract money from wallet and hold before order will be done
+        portfolio_all_data = trader.portfolio_show_current(user_id)
+        portfolio_usdrub_data = (portfolio_all_data[portfolio_all_data["ticker"] == "USDRUB"])
+        if not portfolio_usdrub_data.empty:
+
+            # need to calculate amount of USD to hold
+            print(portfolio_usdrub_data["amount"])
+            # if first order have enough amount do hold operation
+            # else add second buy order if exist and do hold operation
+            # if amount not enough for buy operation - user need to buy more USDRUB
+            return False
+
+        elif portfolio_usdrub_data.empty:
+            print("You need to buy USDRUB")
+            return False
+
+    elif order_type == "Sell" :
 
         print("Enter operation id to sell ")
-        historical_operation_id = int(input(">>"))
+        buy_operation_id = int(input(">>"))
         user_id = order_query[1]
-        portfolio__all_data = trader.portfolio_show_history(user_id)
-        portfolio_data = (portfolio__all_data[portfolio__all_data["operation_id"] == historical_operation_id])
+        portfolio_all_data = trader.portfolio_show_current(user_id)
+        portfolio_data = (portfolio_all_data[portfolio_all_data["operation_id"] == buy_operation_id])
         if not portfolio_data.empty:
             # check if order have one operation_id for buy and sell order early
 
             if len(portfolio_data) == 2 and len(portfolio_data["order_type"].unique()) == 2:
-                print("Order: ", historical_operation_id, "closed completely")
+                print("Order: ", buy_operation_id, "closed completely")
                 return False
             else:
-                portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == historical_operation_id]
+                portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == buy_operation_id]
                 current_ticker_price = market.get_ticker_price(order_data)
                 print("Current price:", current_ticker_price)
                 if current_ticker_price == "TickerNotFound":
@@ -101,10 +149,10 @@ def create_order_query(order_query):
                     print("amount:", amount)
                     currency = market.get_ticker_currency(order_data)
                     order_price_total = order_price * lot_size * amount
-                    created_at = current_time_iso
+                    created_at = get_current_time()
 
                     # use historical id to easy close this orders in future
-                    operation_id = historical_operation_id
+                    operation_id = buy_operation_id
                     order_status = False
                     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                                    created_at, operation_id, instrument, order_status]
@@ -114,7 +162,7 @@ def create_order_query(order_query):
                     create_orders_query(order_query)
                     return True
         elif portfolio_data.empty:
-            print(historical_operation_id, "Order not found")
+            print(buy_operation_id, "Order not found")
             return False
     else:
         print("Order is not ready, please repeat")
@@ -138,12 +186,8 @@ def wallet_subtract_money_for_buy(order_data):
     instrument = order_data[9]
     order_status = order_data[10]
 
-
     print("Money to hold from wallet:", order_price_total)
-
-    # ct stores current time
-    current_time = datetime.datetime.utcnow()
-    current_time_iso = datetime.datetime.isoformat(current_time, sep=' ', timespec='seconds')
+    current_time = get_current_time()
 
     wallet_history_data = trader.wallet_show_history(account_id)
 
@@ -159,7 +203,7 @@ def wallet_subtract_money_for_buy(order_data):
             # pay attention that 0-order_price_total for result as -xxx
             df = wallet_history_data.append({"currency": currency,
                                              "amount": 0 - order_price_total,
-                                             "date_time": current_time_iso,
+                                             "date_time": current_time,
                                              "operation": operation,
                                              "operation_id": operation_id},
                                             ignore_index=True)
@@ -184,7 +228,7 @@ def wallet_subtract_money_for_buy(order_data):
                 # pay attention that 0-amount for result as -xxx
                 df = wallet_history_data.append({"currency": currency,
                                                  "amount": 0 - order_price_total,
-                                                 "date_time": current_time_iso,
+                                                 "date_time": current_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -224,10 +268,7 @@ def wallet_add_money_for_sell(order_data):
     print("Money to add:", order_price_total)
     print(order_query)
 
-    # ct stores current time
-
-    ct = datetime.datetime.utcnow()
-    date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
+    current_time = get_current_time()
     account_id = user_id
     # check if this file exist
     trader.is_wallet_history_exist(account_id)
@@ -236,22 +277,22 @@ def wallet_add_money_for_sell(order_data):
     if currency == "RUB" or currency == "USD":
 
         amount = order_price_total
-        date_time = date_time_iso
+
         operation = "sell"
         # second operation will calculate and write new data to current state of wallet
-        with open("files/wallet_" + str(account_id) + ".txt", "r") as file:
+        with open("files/wallet_current_" + str(account_id) + ".txt", "r") as file:
             data = file.read()
         wallet_current_data = json.loads(data)
 
         if currency == "RUB":
             wallet_current_data["RUB"] += amount
             if wallet_current_data["RUB"] >= 0.:
-                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
 
                 df = wallet_history_data.append({"currency": currency,
                                                  "amount": amount,
-                                                 "date_time": date_time,
+                                                 "date_time": current_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -265,12 +306,12 @@ def wallet_add_money_for_sell(order_data):
         elif currency == "USD":
             wallet_current_data["USD"] += amount
             if wallet_current_data["USD"] >= 0.:
-                with open("files/wallet_" + str(account_id) + ".txt", 'w') as file:
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
                 # write operation to history
                 df = wallet_history_data.append({"currency": currency,
                                                  "amount": amount,
-                                                 "date_time": date_time,
+                                                 "date_time": current_time,
                                                  "operation": operation,
                                                  "operation_id": operation_id},
                                                 ignore_index=True)
@@ -355,7 +396,8 @@ def check_new_orders(account_id):
             print("Order created_at", order_data["created_at"])
             if order_data["user_id"] == account_id:
                 print("Order data:", order_data)
-                order_status_response = check_order_status(order_data)
+                # order_status_response = check_order_status(order_data)
+                order_status_response = market.get_ticker_historical_data(order_data)
                 print("Order status response:", order_status_response)
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
@@ -365,7 +407,6 @@ def check_new_orders(account_id):
                     with open('files/orders_query.txt', 'w+') as file:
                         file.write(json.dumps(new_order_list))
                         print("New orders_query changed ")
-
 
                     order_data.update({"order_done_at": order_status_response[1]})
                     # add data about done order to potrfolio_current
@@ -406,57 +447,8 @@ def check_order_status(order_data_next):
     created_at = order_data_next["created_at"]
     instrument = order_data_next["instrument"]
     operation_id = order_data_next["operation_id"]
-
+    current_time = get_current_time()
     # need to check all prices from order created_at to now or min max daily
-    df = market.get_ticker_historical_data(order_data_next)
+    order_status = market.get_ticker_historical_data(order_data_next)
 
-    if df is not None:
-        for items in df:
-            hist_price = items
-            # condition for buy order
-            if order_type == "Buy" and order_price >= hist_price:
-
-                date_of_done = df.index[0]
-
-                # convert from timestamp to isoformat
-                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ', timespec='seconds')
-                flag = True
-                order_status = [flag, order_done_at]
-                print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, ">=",
-                      hist_price)
-                return order_status
-            # condition for sell order
-            elif order_type == "Sell" and order_price <= hist_price:
-                print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price, "<=",
-                      hist_price)
-                date_of_done = df.index[0]
-
-                order_done_at = datetime.datetime.isoformat(date_of_done, sep=' ',
-                                                            timespec='seconds')  # date_of_done.isoformat(' ')
-                flag = True
-                order_status = [flag, order_done_at]
-                return order_status
-
-        print("Wrong condition or not Done yet")
-        print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
-
-
-        # need to store in another list for check iteration
-        order_done_at = created_at
-        flag = False
-        order_status = [flag, order_done_at]
-        return order_status
-
-
-
-    else:
-        print("df is  None ")
-        print("operation_id", operation_id, "order type:", order_type, "Order price:", order_price)
-
-        # need to store in another list for check iteration
-        ct = datetime.datetime.utcnow()
-        date_time_iso = datetime.datetime.isoformat(ct, sep=' ', timespec='seconds')
-        order_checked_at = date_time_iso
-        flag = False
-        order_status = [flag, order_checked_at]
-        return order_status
+    return order_status

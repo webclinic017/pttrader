@@ -81,6 +81,11 @@ def market_manager(user_account_id):
             print(trader.wallet_show_current(current_user_id))
             user_input = ""
         # portfolio show history
+        elif user_input == "portfolio current":
+
+            print(trader.portfolio_show_current(current_user_id))
+            user_input = ""
+        # portfolio show history
         elif user_input == "portfolio history":
             # trader.portfolio_show_history(current_user_id)
 
@@ -96,16 +101,15 @@ def market_manager(user_account_id):
 
 
 def main():
-    # starting program, waiting for  User log in and user_id return
-    print("Please log in ")
-    print("Type your Name:")
-    input_user_login = str(trader.get_user_input_data())
-    print("Type your Account ID: (only integer numbers")
-    input_account_id = int(trader.get_user_input_data())
+    # starting program, waiting for  User input and user account_id return
+    print("Please type your login ")
+    input_user_login = str(input("Login >>"))
+    print("Type your Account id: (use only integer numbers)")
+    input_account_id = int(input("Account id >>"))
+    response_from_login_module = login.user_logging(input_user_login, input_account_id)
 
-    print(login.user_logging(input_user_login, input_account_id))
     # main cycle
-    #market_manager(response_from_login_module)
+    market_manager(response_from_login_module)
 
 
 if __name__ == "__main__":
