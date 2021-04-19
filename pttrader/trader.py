@@ -5,7 +5,6 @@ from random import randint
 import json
 import sys
 
-
 pd.set_option('display.max_columns', None)
 
 
@@ -23,27 +22,12 @@ def generate_random_id():
     return random_id
 
 
-class Account:
-    """
-    Class Account contain personal information about Traider:
-    Login
-    Password
-    ID
-    """
-
-    def __init__(self, login, account_id):
-        self.login = login
-        self.account_id = account_id
-
-
-
 def wallet_create_new(account_id):
     """
     This function creates two .csv files:
     first for storing wallet operations history
     and second for current wallet state
     """
-
 
     # get input data from user
     print("Enter main currency for your broker RUB or USD")
@@ -97,7 +81,6 @@ def wallet_add_money(account_id):
         # random id generator foo
         operation_id = generate_random_id()
 
-
         # second operation will calculate and write new data to current state of wallet
 
         if currency == "RUB":
@@ -142,7 +125,6 @@ def wallet_add_money(account_id):
             operation = "add"
             # random id generator foo
             operation_id = generate_random_id()
-
 
             # second operation will calculate and write new data to current state of wallet
 
@@ -233,9 +215,8 @@ def is_wallet_current_exist(account_id):
     if Path("files").is_dir() and wallet_data.is_file():
         return True
     else:
-        print("Wallet current does not exist \n"
-              "New current wallet will be created \n"
-              )
+        print("Wallet current does not exist")
+
         return False
 
 
@@ -387,3 +368,16 @@ def portfolio_show_history(account_id):
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return
+
+
+class Account:
+    """
+    Class Account contain personal information about Traider:
+    Login
+    Password
+    ID
+    """
+
+    def __init__(self, login, account_id):
+        self.login = login
+        self.account_id = account_id

@@ -97,10 +97,15 @@ def market_manager(user_account_id):
 
 def main():
     # starting program, waiting for  User log in and user_id return
-    account_id = login.wait_logging()
-    print("Hello,", account_id)
+    print("Please log in ")
+    print("Type your Name:")
+    input_user_login = str(trader.get_user_input_data())
+    print("Type your Account ID: (only integer numbers")
+    input_account_id = int(trader.get_user_input_data())
+
+    print(login.user_logging(input_user_login, input_account_id))
     # main cycle
-    market_manager(account_id)
+    #market_manager(response_from_login_module)
 
 
 if __name__ == "__main__":

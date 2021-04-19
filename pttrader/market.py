@@ -3,11 +3,13 @@ import yfinance as yf
 import datetime
 import pandas as pd
 
+
 def get_stock_data(order_data):
     """
     order_data is input type of instrument: stocks or currency and ticker
     for stock https://api-invest.tinkoff.ru/trading/stocks/get?ticker=
     for currency api is https://api-invest.tinkoff.ru/trading/currency/get?ticker=USDRUB
+    :return: stock_data
     """
     instrument = order_data[0]
     ticker = order_data[1]
@@ -18,7 +20,7 @@ def get_stock_data(order_data):
     req = requests.get(url, headers=headers)
     resp = req.json()
     stock_data = resp["payload"]
-
+    
     return stock_data
 
 

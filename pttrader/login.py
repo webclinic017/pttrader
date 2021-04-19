@@ -1,64 +1,95 @@
+"""
+This module used for user logging
 
 """
-This module use for user logging
-
-"""
-
 
 import json
-from random import randint
 import trader
 from pathlib import Path
 import os
-
-# TODO refactor login module same as trader
-
-def wait_logging():
-    wait = True
-
-    print("Please log in")
-    print("Type your Name:")
-    login = input(">>")
-    print("Type your Account ID:")
-    account_id = int(input(">>"))
-    while wait:
-
-        account_data = Path("files/traders_accounts.txt")
-        if account_data.is_file():
-
-            if checking_traders_accounts_file(login, account_id) is None:
-
-                print(login, "and", account_id, " does not exist.")
-                print("Create new Account?")
-                print("type: Yes or No or hit Enter to exit:")
-                answer = input(">>")
-                if answer == "Yes":
-
-                    new_account_id = create_new_account(login)
-                    print("New login", login, "and", new_account_id, "created")
-
-                    return checking_traders_accounts_file(login, new_account_id)
-                    # cycle going again and ends after return ID
-                elif answer == "No":
-                    print("Please log in")
-                    print("Type your Name:")
-                    login = input(">>")
-                    print("Type your Account ID:")
-                    account_id = int(input(">>"))
-                elif answer == "":
-                    print("exit")
-                    exit(code=1)
-            else:
-                return checking_traders_accounts_file(login, account_id)
-
-        else:
-            print("First time running")
-            new_account_id = create_new_account(login)
-            print("New login", login, "and", new_account_id, "created")
-            return checking_traders_accounts_file(login, new_account_id)
+import sys
 
 
-def checking_traders_accounts_file(login, account_id):
+def user_logging(login, account_id):
+
+    while True:
+
+        if trader_accounts_file_exist():
+            if get_user_account_id(login, account_id)[0]:
+                return account_id
+
+            elif not get_user_account_id(login, account_id)[0]:
+                # need to add new user or user made mistake in input data
+                print(login, "and", account_id, "not found")
+                print("Type new, to create new account or hit Enter to retype")
+                user_input = trader.get_user_input_data()
+                # user type "new"
+                if user_input == "new":
+                    print("New login is", login)
+                    account_id = add_user_to_traders_account_file(login)
+                    print("account id", account_id)
+                    return account_id
+                elif user_input == "":  # user hit Enter
+                    print("retype your login and account id ")
+                    login = trader.get_user_input_data()
+                    account_id = trader.get_user_input_data()
+
+                else:
+                    print("you type:", user_input)
+
+        # this is new login and account id
+        elif not trader_accounts_file_exist():
+
+            if create_traders_accounts_file():
+
+                account_id = add_user_to_traders_account_file(login)
+                return account_id
+
+
+def trader_accounts_file_exist():
+    account_data = Path("files/traders_accounts.txt")
+
+    if account_data.is_file():
+
+        return True
+    else:
+        # Traders accounts database doesn't exist
+
+        return False
+
+
+def create_traders_accounts_file():
+    if not Path("files").is_dir():
+        os.mkdir("files")
+
+    # add empty data to local database
+    empty_data = []
+    with open('files/traders_accounts.txt', 'w+') as file:
+        file.write(json.dumps(empty_data))
+    # self checking
+    if trader_accounts_file_exist():
+        return True
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        return False
+
+
+def add_user_to_traders_account_file(login):
+    # add new account to local database
+
+    with open('files/traders_accounts.txt', "r") as file:
+        data = file.read()
+    data = json.loads(data)
+    account_id = trader.generate_random_id() # generate random unic id
+    data.append({"login": login, "account_id": account_id})
+    with open('files/traders_accounts.txt', 'w') as file:
+        file.write(json.dumps(data))
+
+    return account_id
+
+
+def get_user_account_id(login, account_id):
+
     # check if user already exist
     with open('files/traders_accounts.txt') as file:
         data = file.read()  #
@@ -67,57 +98,12 @@ def checking_traders_accounts_file(login, account_id):
     for account in data:
         if login == account["login"] and account_id == account["account_id"]:
 
-            # if exist return user ID
-            return account_id
+            response = [True, account_id]
+            return response
         else:
             pass
-    return
+
+    response = [False, account_id]
+    return response
 
 
-def create_new_account(new_login):
-    """
-    :param: new_login Name
-    This function create new login and account_id in traders_accounts.txt and append it to the end
-    :return: traders_accounts.txt
-    """
-
-    login = new_login
-    account_id = randint(10000, 99999)  # random id generator
-    new_account = trader.Account(login=login, account_id=account_id)
-    if Path("files").is_dir():
-
-        account_data = Path("files/traders_accounts.txt")
-        if account_data.is_file():
-            # file exists
-            # add new account to local database
-            with open('files/traders_accounts.txt', "r") as file:
-                data = file.read()
-            data = json.loads(data)
-
-            data.append({"login": new_account.login, "account_id": new_account.account_id})
-            with open('files/traders_accounts.txt', 'w') as file:
-                file.write(json.dumps(data))
-                print("Remember your account id: ", new_account.account_id)
-            return new_account.account_id
-
-        elif Path("files").is_dir():
-
-
-            # add new account to local database
-
-            first_data = [{"login": new_account.login, "account_id": new_account.account_id}]
-            with open('files/traders_accounts.txt', 'w+') as file:
-                file.write(json.dumps(first_data))
-                print("Remember your account id: ", new_account.account_id)
-            return new_account.account_id
-
-    else:
-
-        os.mkdir("files")
-        # add new account to local database
-
-        first_data = [{"login": new_account.login, "account_id": new_account.account_id}]
-        with open('files/traders_accounts.txt', 'w+') as file:
-            file.write(json.dumps(first_data))
-            print("Remember your account id: ", new_account.account_id)
-        return new_account.account_id
