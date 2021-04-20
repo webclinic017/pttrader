@@ -30,8 +30,8 @@ def wallet_create_new(account_id):
     """
 
     # get input data from user
-    print("Enter main currency for your broker RUB or USD")
-    print("Only RUB supported now.")
+
+    print("Only RUB supported now as main currency.")
     main_currency = "RUB"
     if main_currency == "RUB":
 
@@ -39,7 +39,9 @@ def wallet_create_new(account_id):
         with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
             file.write(json.dumps(wallet_current_data))
 
-        wallet_history_df = pd.DataFrame(columns=[ "operation_id", "currency", "amount", "date_time", "operation"])
+        wallet_history_df = pd.DataFrame(columns=[ "operation_id", "currency", "amount", "operation",
+                                                   "instrument",  "date_time",
+                                                   ])
         wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
         # check if files are created
@@ -62,11 +64,16 @@ def wallet_add_money(data_query):
     and write operation to wallet_history .csv
     fist operation will add data to wallet_history data
     second operation will calculate data and add to current wallet data
+
+     data_query = [current_user_id, currency, amount, operation_id]
+
     """
     account_id = data_query[0]
     currency = data_query[1]
     amount = data_query[2]
     operation_id = data_query[3]
+    instrument = data_query[4]
+    operation = data_query [5]
 
     current_time = broker.get_current_time()
 
@@ -75,7 +82,7 @@ def wallet_add_money(data_query):
         wallet_history_data = wallet_show_history(account_id)
         wallet_current_data = wallet_show_current(account_id)
 
-        operation = "add"
+
 
         # second operation will calculate and write new data to current state of wallet
 
@@ -85,7 +92,8 @@ def wallet_add_money(data_query):
                                              "amount": amount,
                                              "date_time": current_time,
                                              "operation": operation,
-                                             "operation_id": operation_id},
+                                             "operation_id": operation_id,
+                                             "instrument": instrument},
                                             ignore_index=True)
 
             df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
@@ -100,7 +108,8 @@ def wallet_add_money(data_query):
                                              "amount": amount,
                                              "date_time": current_time,
                                              "operation": operation,
-                                             "operation_id": operation_id},
+                                             "operation_id": operation_id,
+                                             "instrument": instrument},
                                             ignore_index=True)
 
             df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
@@ -119,6 +128,7 @@ def wallet_add_money(data_query):
             print("Enter amount to add:")
             amount = get_user_input_data()
             operation = "add"
+            instrument = "currency"
             # random id generator foo
             operation_id = generate_random_id()
 
@@ -130,7 +140,8 @@ def wallet_add_money(data_query):
                                                  "amount": amount,
                                                  "date_time": current_time,
                                                  "operation": operation,
-                                                 "operation_id": operation_id},
+                                                 "operation_id": operation_id,
+                                                 "instrument": instrument},
                                                 ignore_index=True)
 
                 df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
@@ -143,73 +154,14 @@ def wallet_add_money(data_query):
                                                  "amount": amount,
                                                  "date_time": current_time,
                                                  "operation": operation,
-                                                 "operation_id": operation_id},
+                                                 "operation_id": operation_id,
+                                                 "instrument": instrument},
                                                 ignore_index=True)
 
                 df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
                 with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
                 return True
-
-    else:
-        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
-        return
-
-
-def wallet_subtract_money(data_query):
-    """
-    This function subtract money from current wallet .csv
-    and write operation to wallet_history .csv
-    fist operation will add data to wallet_history data
-    second operation will calculate data and add data to current wallet
-    """
-
-    account_id = data_query[0]
-    currency = data_query[1]
-    amount = data_query[2]
-    operation_id = data_query[3]
-
-    current_time = broker.get_current_time()
-
-    # check if this file exist
-    if is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
-        wallet_history_data = wallet_show_history(account_id)
-        wallet_current_data = wallet_show_current(account_id)
-
-        operation = "hold"
-
-        # second operation will calculate and write new data to current state of wallet
-
-        if currency == "RUB":
-            wallet_current_data["RUB"] -= amount
-            df = wallet_history_data.append({"currency": currency,
-                                             "amount": 0-amount,
-                                             "date_time": current_time,
-                                             "operation": operation,
-                                             "operation_id": operation_id},
-                                            ignore_index=True)
-
-            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-            # write new data to wallet_current
-            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
-                file.write(json.dumps(wallet_current_data))
-
-            return True
-        elif currency == "USD":
-            wallet_current_data["USD"] -= amount
-            df = wallet_history_data.append({"currency": currency,
-                                             "amount": 0- amount,
-                                             "date_time": current_time,
-                                             "operation": operation,
-                                             "operation_id": operation_id},
-                                            ignore_index=True)
-
-            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-            # write new data to wallet_current
-            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
-                file.write(json.dumps(wallet_current_data))
-
-            return True
 
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
@@ -284,17 +236,18 @@ def portfolio_create_new(account_id):
     and second for current portfolio state
     """
 
-    portfolio_current_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount", "currency",
-                                                 "order_price_total", "order_created_at",  "instrument",
-                                                 "order_done_at", "order_status"
+    portfolio_current_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount",
+                                                 "currency", "order_price_total", "commission", "instrument",
+                                                 "order_created_at", "order_done_at",
                                                  ])
 
     portfolio_current_df.to_csv("files/portfolio_history_" + str(account_id) + ".csv", index=False)
 
-    portfolio_history_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount", "currency",
-                                                 "order_price_total", "order_created_at",  "instrument",
-                                                 "order_done_at"
+    portfolio_history_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount",
+                                                 "currency", "order_price_total", "commission", "instrument",
+                                                 "order_created_at", "order_done_at",
                                                  ])
+
     portfolio_history_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
     if is_portfolio_current_exist(account_id) and is_portfolio_history_exist(account_id):
@@ -330,7 +283,7 @@ def portfolio_current_add_order(data):
     """
      data:
      {'order_type': 'Buy', 'user_id': 39460, 'ticker': 'NMTP', 'order_price': 7.8, 'amount': 10, 'currency': 'RUB',
-      'order_price_total': 7800.0, 'created_at': 1618331390.686862, 'operation_id': 73483, 'instrument': 'stocks',
+      'order_price_total': 7800.0, 'commission' : 0.3,'created_at': 1618331390.686862, 'operation_id': 73483, 'instrument': 'stocks',
       'order_status': False, 'order_done_at': 1618246800.0}
      """
 
@@ -344,6 +297,7 @@ def portfolio_current_add_order(data):
                                             "amount": data["amount"],
                                             "currency": data["currency"],
                                             "order_price_total": data["order_price_total"],
+                                            "commission": data["commission"],
                                             "order_created_at": data["created_at"],
                                             "operation_id": data["operation_id"],
                                             "instrument": data["instrument"],
@@ -363,6 +317,7 @@ def portfolio_current_add_order(data):
                                                 "amount": data["amount"],
                                                 "currency": data["currency"],
                                                 "order_price_total": data["order_price_total"],
+                                                "commission": data["commission"],
                                                 "order_created_at": data["created_at"],
                                                 "operation_id": data["operation_id"],
                                                 "instrument": data["instrument"],
@@ -404,6 +359,7 @@ def portfolio_history_add_order(data):
                                             "amount": data["amount"],
                                             "currency": data["currency"],
                                             "order_price_total": data["order_price_total"],
+                                            "commission": data["commission"],
                                             "order_created_at": data["created_at"],
                                             "operation_id": data["operation_id"],
                                             "instrument": data["instrument"],
@@ -423,6 +379,7 @@ def portfolio_history_add_order(data):
                                                 "amount": data["amount"],
                                                 "currency": data["currency"],
                                                 "order_price_total": data["order_price_total"],
+                                                "commission": data["commission"],
                                                 "order_created_at": data["created_at"],
                                                 "operation_id": data["operation_id"],
                                                 "instrument": data["instrument"],

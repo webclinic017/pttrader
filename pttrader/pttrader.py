@@ -25,19 +25,15 @@ def market_manager(user_account_id):
             print("List of commands: \n\n"
                   "buy \n"
                   "sell \n"
-                  "wallet balance \n"
+                  "wallet current \n"
                   "wallet history \n"
                   "wallet add \n"
+                  "portfolio current \n"
                   "portfolio history\n"
                   )
             # wait for user new input:
             print("Waiting for user command")
             user_input = input(">>")
-            if user_input == "":
-                print("Waiting for user command")
-                user_input = input(">>")
-            else:
-                print("You type: ", user_input)
 
         elif user_input == "":
             print("Waiting for user command, elif branch")
@@ -61,7 +57,7 @@ def market_manager(user_account_id):
 
             user_input = ""
         # wallet command to show current state of wallet
-        elif user_input == "wallet balance":
+        elif user_input == "wallet current":
             print("User ID: ", str(current_user_id))
             wallet_data = trader.wallet_show_current(current_user_id)
 
@@ -83,7 +79,9 @@ def market_manager(user_account_id):
             print("Enter amount to add:")
             amount = float(trader.get_user_input_data())
             operation_id = trader.generate_random_id()
-            data_query = [current_user_id, currency, amount, operation_id]
+            instrument = "currency"
+            operation = "user add"
+            data_query = [current_user_id, currency, amount, operation_id, instrument, operation]
             trader.wallet_add_money(data_query)
 
             print(trader.wallet_show_current(current_user_id))
