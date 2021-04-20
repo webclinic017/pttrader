@@ -111,10 +111,37 @@ def create_order_query(order_query):
             # if first order have enough amount do hold operation
             # else add second buy order if exist and do hold operation
             # if amount not enough for buy operation - user need to buy more USDRUB
+
+            # need to calculate amount of USD to hold
+            index_list = portfolio_usdrub_data.index.to_list()
+            amount_data_sum = 0.
+            operation_id_to_block = []
+            index_list_decrease = len(index_list)
+            for index in index_list:
+
+                data = portfolio_usdrub_data.loc[[index], ['amount']]
+                amount_data = (data.iloc[0, 0])
+                data_operation_id = portfolio_usdrub_data.loc[[index], ['operation_id']]
+                operation_id = data_operation_id.iloc[0, 0]
+                if order_price_total >= amount_data_sum:
+                    index_list_decrease -= 1
+                    amount_data_sum += amount_data
+                    print("amount_for_stock_buy", order_price_total, ">=", amount_data_sum, "amount_data_sum")
+                    operation_id_to_block.append(operation_id)
+                    print(amount_data_sum)
+                    if index_list_decrease <= 0 and order_price_total > amount_data_sum:
+                        print("You don't have enough amount of USD, buy more USDRUB or less amount of stocks ")
+                        return False
+
+            print("end Len of index list:", index_list_decrease)
+            # need to add block
+            print(operation_id_to_block)
+
             return False
 
         elif portfolio_usdrub_data.empty:
             print("You need to buy USDRUB")
+
             return False
 
     elif order_type == "Sell" :
@@ -389,11 +416,13 @@ def check_new_orders(account_id):
     data = json.loads(data)
     new_order_list = data
     order_status = True
+    # all not done orders
     while new_order_list and order_status:
         for order_data in new_order_list:
-            # check orders in orders list only for current user
+
             print("Checking order id:", order_data["operation_id"])
             print("Order created_at", order_data["created_at"])
+            # check orders in orders list only for current user
             if order_data["user_id"] == account_id:
                 print("Order data:", order_data)
                 # order_status_response = check_order_status(order_data)
@@ -411,7 +440,10 @@ def check_new_orders(account_id):
                     order_data.update({"order_done_at": order_status_response[1]})
                     # add data about done order to potrfolio_current
                     trader.portfolio_current_add_order(order_data)
-                    if order_data['order_type'] == "Sell":
+                    if order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
+                        data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"]]
+                        trader.wallet_add_money(data_query)
+                    elif order_data['order_type'] == "Sell":
                         # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
 

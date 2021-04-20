@@ -76,7 +76,15 @@ def market_manager(user_account_id):
             user_input = ""
         # wallet add money
         elif user_input == "wallet add":
-            trader.wallet_add_money(current_user_id)
+            # get input data from user
+            print("Enter currency RUB to add:")
+            currency = str(trader.get_user_input_data())
+
+            print("Enter amount to add:")
+            amount = float(trader.get_user_input_data())
+            operation_id = trader.generate_random_id()
+            data_query = [current_user_id, currency, amount, operation_id]
+            trader.wallet_add_money(data_query)
 
             print(trader.wallet_show_current(current_user_id))
             user_input = ""

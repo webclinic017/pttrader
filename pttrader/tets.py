@@ -54,6 +54,7 @@ if not filtered_by_time.empty:
         print("filtered by price:", filtered_by_price)
 
         print("first data: ", filtered_by_price.index[0])
+
         print("filtered first price",filtered_by_price.iloc[ 0 , 0])
 
         tupe_tz = (filtered_by_price.index[0])
