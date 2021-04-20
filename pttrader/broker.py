@@ -106,37 +106,28 @@ def create_order_query(order_query):
         if not portfolio_usdrub_data.empty:
 
             # need to calculate amount of USD to hold
-            print(portfolio_usdrub_data["amount"])
+            # get current USD amount from wallet balance
+            wallet_balance_data = trader.wallet_show_current(user_id)
+            usd_at_wallet = wallet_balance_data["USD"]
+            print("usd_at_wallet: ", usd_at_wallet)
+            if usd_at_wallet >= order_price_total:
+                print("You have enough money for this buy order")
+                # hold usd from wallet_current for this operation
+                if wallet_subtract_money_for_buy(order_query):
+                    create_orders_query(order_query)
+                    return True
+
+            elif usd_at_wallet < order_price_total:
+                print("You don't have enough money for this buy order")
+                print("You need:", order_price_total - usd_at_wallet)
+                return False
             # if first order have enough amount do hold operation
             # else add second buy order if exist and do hold operation
             # if amount not enough for buy operation - user need to buy more USDRUB
 
             # need to calculate amount of USD to hold
-            index_list = portfolio_usdrub_data.index.to_list()
-            amount_data_sum = 0.
-            operation_id_to_block = []
-            index_list_decrease = len(index_list)
-            for index in index_list:
 
-                data = portfolio_usdrub_data.loc[[index], ['amount']]
-                amount_data = (data.iloc[0, 0])
-                data_operation_id = portfolio_usdrub_data.loc[[index], ['operation_id']]
-                operation_id = data_operation_id.iloc[0, 0]
-                if order_price_total >= amount_data_sum:
-                    index_list_decrease -= 1
-                    amount_data_sum += amount_data
-                    print("amount_for_stock_buy", order_price_total, ">=", amount_data_sum, "amount_data_sum")
-                    operation_id_to_block.append(operation_id)
-                    print(amount_data_sum)
-                    if index_list_decrease <= 0 and order_price_total > amount_data_sum:
-                        print("You don't have enough amount of USD, buy more USDRUB or less amount of stocks ")
-                        return False
 
-            print("end Len of index list:", index_list_decrease)
-            # need to add block
-            print(operation_id_to_block)
-
-            return False
 
         elif portfolio_usdrub_data.empty:
             print("You need to buy USDRUB")
@@ -212,7 +203,7 @@ def wallet_subtract_money_for_buy(order_data):
     instrument = order_data[9]
     order_status = order_data[10]
 
-    print("Money to hold from wallet:", order_price_total)
+    print("Money to hold from wallet:", order_price_total, currency)
     current_time = get_current_time()
 
     wallet_history_data = trader.wallet_show_history(account_id)
@@ -265,12 +256,28 @@ def wallet_subtract_money_for_buy(order_data):
                 print("You don't have enough money for this operation")
                 print(trader.wallet_show_current(account_id))
                 return False
+
         elif currency == "USD":
-            # TODO 1) calculate amount USDRUB (order_price_total) to hold in USD from
-            # TODO 2) if portfolio_current have USDRUB, than hold amount from this buy orders and block them to sell
-            # TODO 3) add additional parameter to portfolio_current that show status
-            print("you try to buy stocks in USD currency, this feature is not ready now")
-            return False
+            wallet_current_data["USD"] -= order_price_total
+            if wallet_current_data["RUB"] >= 0.:
+                # write new data to wallet_current
+                with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+
+                df = wallet_history_data.append({"currency": currency,
+                                                 "amount": 0 - order_price_total,
+                                                 "date_time": current_time,
+                                                 "operation": operation,
+                                                 "operation_id": operation_id},
+                                                ignore_index=True)
+
+                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+                return True
+
+            elif wallet_current_data["USD"] < 0.:
+                print("You don't have enough money for this operation")
+                print(trader.wallet_show_current(account_id))
+                return False
 
 
 def wallet_add_money_for_sell(order_data):
@@ -382,7 +389,7 @@ def create_orders_query(order_query):
                            "order_status": order_query[10]}]
             with open('files/orders_query.txt', 'w+') as file:
                 file.write(json.dumps(first_data, default=str))
-                print("New order_query_created")
+
             return True
 
     else:
@@ -426,7 +433,7 @@ def check_new_orders(account_id):
                 print("Order data:", order_data)
                 # order_status_response = check_order_status(order_data)
                 order_status_response = market.get_ticker_historical_data(order_data)
-                print("Order status response:", order_status_response)
+                print("Order status from market response:", order_status_response)
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
                     order_data.update({"order_done_at": order_status_response[1]})
@@ -444,6 +451,8 @@ def check_new_orders(account_id):
                     elif order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
                         data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"]]
                         trader.wallet_add_money(data_query)
+                        # add data about done order to potrfolio_current
+                        trader.portfolio_current_add_order(order_data)
 
                     elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                         # add money to user_id wallet

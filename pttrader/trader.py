@@ -32,14 +32,14 @@ def wallet_create_new(account_id):
     # get input data from user
     print("Enter main currency for your broker RUB or USD")
     print("Only RUB supported now.")
-    main_currency = get_user_input_data()
+    main_currency = "RUB"
     if main_currency == "RUB":
 
         wallet_current_data = {main_currency: 0., "USD": 0.}
         with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
             file.write(json.dumps(wallet_current_data))
 
-        wallet_history_df = pd.DataFrame(columns=["currency", "amount", "date_time", "operation", "operation_id"])
+        wallet_history_df = pd.DataFrame(columns=[ "operation_id", "currency", "amount", "date_time", "operation"])
         wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
         # check if files are created
@@ -156,7 +156,7 @@ def wallet_add_money(data_query):
         return
 
 
-def wallet_subtract_money(account_id):
+def wallet_subtract_money(data_query):
     """
     This function subtract money from current wallet .csv
     and write operation to wallet_history .csv
@@ -164,7 +164,56 @@ def wallet_subtract_money(account_id):
     second operation will calculate data and add data to current wallet
     """
 
-    pass
+    account_id = data_query[0]
+    currency = data_query[1]
+    amount = data_query[2]
+    operation_id = data_query[3]
+
+    current_time = broker.get_current_time()
+
+    # check if this file exist
+    if is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
+        wallet_history_data = wallet_show_history(account_id)
+        wallet_current_data = wallet_show_current(account_id)
+
+        operation = "hold"
+
+        # second operation will calculate and write new data to current state of wallet
+
+        if currency == "RUB":
+            wallet_current_data["RUB"] -= amount
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": 0-amount,
+                                             "date_time": current_time,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
+
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # write new data to wallet_current
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+
+            return True
+        elif currency == "USD":
+            wallet_current_data["USD"] -= amount
+            df = wallet_history_data.append({"currency": currency,
+                                             "amount": 0- amount,
+                                             "date_time": current_time,
+                                             "operation": operation,
+                                             "operation_id": operation_id},
+                                            ignore_index=True)
+
+            df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
+            # write new data to wallet_current
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+
+            return True
+
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        return
 
 
 def wallet_show_current(account_id):
@@ -235,15 +284,15 @@ def portfolio_create_new(account_id):
     and second for current portfolio state
     """
 
-    portfolio_current_df = pd.DataFrame(columns=["order_type", "ticker", "order_price", "amount", "currency",
-                                                 "order_price_total", "order_created_at", "operation_id", "instrument",
+    portfolio_current_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount", "currency",
+                                                 "order_price_total", "order_created_at",  "instrument",
                                                  "order_done_at", "order_status"
                                                  ])
 
     portfolio_current_df.to_csv("files/portfolio_history_" + str(account_id) + ".csv", index=False)
 
-    portfolio_history_df = pd.DataFrame(columns=["order_type", "ticker", "order_price", "amount", "currency",
-                                                 "order_price_total", "order_created_at", "operation_id", "instrument",
+    portfolio_history_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount", "currency",
+                                                 "order_price_total", "order_created_at",  "instrument",
                                                  "order_done_at"
                                                  ])
     portfolio_history_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
@@ -453,9 +502,10 @@ def portfolio_move_from_current(order_data):
 
         portfolio_cur = portfolio_all_data.set_index("operation_id")
         portfolio_cur_dropped = portfolio_cur.drop(operation_id)
+
         #print("portfolio_cur_dropped\n", portfolio_cur_dropped)
         # save data to portfolio current csv
-        portfolio_cur_dropped.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+        portfolio_cur_dropped.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=True)
 
         return True
 

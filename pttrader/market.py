@@ -1,6 +1,6 @@
 import requests
 import yfinance as yf
-import datetime
+import broker
 import pandas as pd
 
 
@@ -128,21 +128,52 @@ def get_ticker_historical_data(order_data):
                     return order_status
 
                 elif filtered_by_price.empty:
-                    order_done_at = created_at
+                    order_done_at = broker.get_current_time()
                     flag = False
                     order_status = [flag, order_done_at]
                     return order_status
 
             elif filtered_by_time.empty:
-                order_done_at = created_at
+                order_done_at = broker.get_current_time()
                 flag = False
                 order_status = [flag, order_done_at]
                 return order_status
         # TODO need to complete
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
-            return df['High']
+            #print("df", df)
+            filtered_by_time = (df[df.index >= created_at])
+            if not filtered_by_time.empty:
+                print("filtered_by_time:\n", filtered_by_time)
+                # condition to Sell order become True
+                filtered_by_price = (filtered_by_time[filtered_by_time['High'] >= order_price])
 
+                if not filtered_by_price.empty:
+                    print("first data: ", filtered_by_price.index[0])
+                    print("filtered first price", filtered_by_price.iloc[0, 0])
+
+                    time_to_convert = (filtered_by_price.index[0])
+                    order_done_at = time_to_convert.tz_convert("Europe/Moscow")
+                    flag = True
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+                elif filtered_by_price.empty:
+                    print("filtered_by_price.empty")
+                    order_done_at = broker.get_current_time()
+                    flag = False
+                    order_status = [flag, order_done_at]
+                    return order_status
+
+            elif filtered_by_time.empty:
+                print("filtered_by_time.empty")
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
+
+
+    # for currency
     elif currency == "RUB" and ticker == "USDRUB":
         print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
         data = yf.download(tickers=ticker + '.ME', start=start_time, prepost=True, progress=False, interval="1m")
@@ -165,13 +196,13 @@ def get_ticker_historical_data(order_data):
                     return order_status
 
                 elif filtered_by_price.empty:
-                    order_done_at = created_at
+                    order_done_at = broker.get_current_time()
                     flag = False
                     order_status = [flag, order_done_at]
                     return order_status
 
             elif filtered_by_time.empty:
-                order_done_at = created_at
+                order_done_at = broker.get_current_time()
                 flag = False
                 order_status = [flag, order_done_at]
                 return order_status
@@ -180,7 +211,7 @@ def get_ticker_historical_data(order_data):
             df = pd.DataFrame(data['High'])
             return df['High']
 
-
+    # for foreign stocks
     elif currency == "USD" and instrument == "stocks":
         print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
         data = yf.download(tickers=ticker, start=start_time, prepost=True, progress=False, interval="1m")
@@ -203,13 +234,13 @@ def get_ticker_historical_data(order_data):
                     return order_status
 
                 elif filtered_by_price.empty:
-                    order_done_at = created_at
+                    order_done_at = broker.get_current_time()
                     flag = False
                     order_status = [flag, order_done_at]
                     return order_status
 
             elif filtered_by_time.empty:
-                order_done_at = created_at
+                order_done_at = broker.get_current_time()
                 flag = False
                 order_status = [flag, order_done_at]
                 return order_status
