@@ -138,7 +138,7 @@ def get_ticker_historical_data(order_data):
                 flag = False
                 order_status = [flag, order_done_at]
                 return order_status
-
+        # TODO need to complete
         elif order_type == "Sell":
             df = pd.DataFrame(data['High'])
             return df['High']

@@ -50,12 +50,11 @@ def create_order_query(order_query):
     if current_ticker_price == "TickerNotFound":
         print(ticker, current_ticker_price, "return False")
         return False
-    # TODO another condition to buy stocks in USD currency
+
     if order_type == "Buy" and currency == "RUB":
 
-        print("price increment is:", market.get_ticker_min_price_increment(order_data))
         print("Enter price for Buy operation:")
-        # TODO change all input() to one function trader.get_user_input_data()
+
         order_price = float(input(">>"))
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
@@ -430,22 +429,33 @@ def check_new_orders(account_id):
                 print("Order status response:", order_status_response)
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
-
+                    order_data.update({"order_done_at": order_status_response[1]})
                     # remove done order from order_query
                     new_order_list.remove(order_data)
                     with open('files/orders_query.txt', 'w+') as file:
                         file.write(json.dumps(new_order_list))
                         print("New orders_query changed ")
 
-                    order_data.update({"order_done_at": order_status_response[1]})
-                    # add data about done order to potrfolio_current
-                    trader.portfolio_current_add_order(order_data)
-                    if order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
+                    if order_data['order_type'] == "Buy" and order_data['instrument'] == "stocks":
+
+                        # add data about done order to potrfolio_current
+                        trader.portfolio_current_add_order(order_data)
+
+                    elif order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
                         data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"]]
                         trader.wallet_add_money(data_query)
-                    elif order_data['order_type'] == "Sell":
+
+                    elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                         # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
+                        # add data about Sell order to portfolio history file
+                        trader.portfolio_history_add_order(order_data)
+                        #delete data about orders from portfolio current and write to portfolio history
+                        trader.portfolio_move_from_current(order_data)
+                    elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
+                        print("You sell USDRUB , need to add money to wallet RUB ")
+                        # add data to wallet history
+                        # also need to move data about Buy operation id to portfolio history
 
                 elif not order_status_response[0]:
                     print("Order status = False")
