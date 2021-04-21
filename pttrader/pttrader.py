@@ -109,9 +109,22 @@ def market_manager(user_account_id):
 def main():
     # starting program, waiting for  User input and user account_id return
     print("Please type your login ")
-    input_user_login = str(input("Login >>"))
+    input_user_login = input("Login >>")
     print("Type your Account id: (use only integer numbers)")
-    input_account_id = int(input("Account id >>"))
+
+    while True:
+        try:
+            input_account_id = int(input("Account id >>"))
+        except ValueError:
+            print("you type not integer number. Example: 123456")
+            continue
+        else:
+            break
+
+
+
+
+
     response_from_login_module = login.user_logging(input_user_login, input_account_id)
 
     # main cycle

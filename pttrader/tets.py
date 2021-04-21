@@ -3,6 +3,7 @@ import datetime
 from dateutil import tz
 import pandas as pd
 
+iter()
 
 tickers_list = "USDRUB"
 ticker_usd = "FOLD"

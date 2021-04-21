@@ -10,32 +10,43 @@ import os
 import sys
 
 
-def user_logging(login, account_id):
+def user_logging(user_login, account_id):
+    """
+
+    :return: int account_id
+    """
 
     while True:
 
         if trader_accounts_file_exist():
-            if get_user_account_id(login, account_id)[0]:
+            if get_user_account_id(user_login, account_id)[0]:
                 return account_id
 
-            elif not get_user_account_id(login, account_id)[0]:
+            elif not get_user_account_id(user_login, account_id)[0]:
                 # need to add new user or user made mistake in input data
-                print(login, "and", account_id, "not found")
+                print(user_login, "and", account_id, "not found")
                 print("Type new, to create new account or hit Enter to retype")
                 user_input = trader.get_user_input_data()
                 # user type "new"
                 if user_input == "new":
 
-                    account_id = add_user_to_traders_account_file(login)
+                    account_id = add_user_to_traders_account_file(user_login)
                     print("New account created!"
-                          "\nRemember your Login:", login,
+                          "\nRemember your Login:", user_login,
                           "\nAccount id:", account_id
                           )
                     return account_id
                 elif user_input == "":  # user hit Enter
                     print("Retype your Login and Account id ")
-                    login = str(input("Login >>"))
-                    account_id = int(input("Account id >>"))
+                    user_login = str(input("Login >>"))
+                    while True:
+                        try:
+                            account_id = int(input("Account id >>"))
+                        except ValueError:
+                            print("you type not integer number. Example: 123456")
+                            continue
+                        else:
+                            break
 
                 else:
                     print("You type:", user_input)
@@ -45,9 +56,9 @@ def user_logging(login, account_id):
 
             if create_traders_accounts_file():
 
-                account_id = add_user_to_traders_account_file(login)
+                account_id = add_user_to_traders_account_file(user_login)
                 print("New account created!"
-                      "\nRemember your Login:", login,
+                      "\nRemember your Login:", user_login,
                       "\nAccount id:", account_id
                       )
                 return account_id
@@ -81,21 +92,21 @@ def create_traders_accounts_file():
         return False
 
 
-def add_user_to_traders_account_file(login):
+def add_user_to_traders_account_file(user_login):
     # add new account to local database
 
     with open('files/traders_accounts.txt', "r") as file:
         data = file.read()
     data = json.loads(data)
     account_id = trader.generate_random_id() # generate random unic id
-    data.append({"login": login, "account_id": account_id})
+    data.append({"login": user_login, "account_id": account_id})
     with open('files/traders_accounts.txt', 'w') as file:
         file.write(json.dumps(data))
 
     return account_id
 
 
-def get_user_account_id(login, account_id):
+def get_user_account_id(user_login, account_id):
 
     # check if user already exist
     with open('files/traders_accounts.txt') as file:
@@ -103,7 +114,7 @@ def get_user_account_id(login, account_id):
     data = json.loads(data)
 
     for account in data:
-        if login == account["login"] and account_id == account["account_id"]:
+        if user_login == account["login"] and account_id == account["account_id"]:
 
             response = [True, account_id]
             return response

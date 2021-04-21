@@ -10,9 +10,14 @@ from dateutil import tz
 
 
 def get_current_time():
-    Moscow_tz = tz.gettz("Europe/Moscow")
-    time_to_moscow = datetime.datetime.now(tz=Moscow_tz)
-    current_time = pd.to_datetime(time_to_moscow)
+    #Moscow_tz = tz.gettz("Europe/Moscow")
+    # time_to_moscow = datetime.datetime.now(tz=Moscow_tz)
+    # current_time = pd.to_datetime(time_to_moscow)
+
+    # for tinkoff_api only
+    d = datetime.datetime.utcnow()
+    current_time = d.isoformat("T") + "Z"
+
     return current_time
 
 
@@ -167,14 +172,17 @@ def create_order_query(order_query):
                     amount = int(portfolio_order_data["amount"].values)
                     print("amount:", amount)
                     currency = market.get_ticker_currency(order_data)
-                    order_price_total = order_price * lot_size * amount
+                    commission_raw = order_price * lot_size * amount / 100 * tinkoff_tarif_investor
+                    order_price_total_raw = (order_price * lot_size * amount) + commission_raw
+                    commission = float('{:.2f}'.format(commission_raw))
+                    order_price_total = float('{:.2f}'.format(order_price_total_raw))
                     created_at = get_current_time()
 
                     # use historical id to easy close this orders in future
                     operation_id = buy_operation_id
                     order_status = False
                     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                                   created_at, operation_id, instrument, order_status]
+                                   created_at, operation_id, instrument, order_status, commission]
                     print("You create sell order: ", order_query)
                     # need to add money to wallet after order will be done
                     # check if trader portfolio have data for sell
@@ -447,8 +455,9 @@ def check_new_orders(account_id):
             # check orders in orders list only for current user
             if order_data["user_id"] == account_id:
                 print("Order data:", order_data)
-                # order_status_response = check_order_status(order_data)
-                order_status_response = market.get_ticker_historical_data(order_data)
+
+                #order_status_response = market.get_ticker_historical_data(order_data)
+                order_status_response = market.get_ticker_historical_data_from_tinkoff_api(order_data)
                 print("Order status from market response:", order_status_response)
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
