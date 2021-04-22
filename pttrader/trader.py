@@ -488,7 +488,7 @@ def portfolio_move_from_current(order_data):
         portfolio_cur = portfolio_all_data.set_index("operation_id")
         portfolio_cur_dropped = portfolio_cur.drop(operation_id)
 
-        #print("portfolio_cur_dropped\n", portfolio_cur_dropped)
+        print("portfolio_cur_dropped\n", portfolio_cur_dropped)
         # save data to portfolio current csv
         portfolio_cur_dropped.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=True)
 

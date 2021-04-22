@@ -732,8 +732,9 @@ def check_new_orders(account_id):
                             sum_of_commissions = round(order_commission + portfolio_commission, 2)
 
                             # next step: delete from portfolio old data and save new
-
-                            without_dropped_data = portfolio_all_data.drop([0])
+                            get_index_number = portfolio_data["commission"].index.values[0]
+                            print("index num:", get_index_number)
+                            without_dropped_data = portfolio_all_data.drop([get_index_number])
 
                             df = without_dropped_data.append({"order_type": order_data["order_type"],
                                                               "ticker": order_data["ticker"],
