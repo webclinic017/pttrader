@@ -16,7 +16,7 @@ def get_current_time():
 
     # for tinkoff_api only
     d = datetime.datetime.utcnow()
-    current_time = d.isoformat("T") + "+00:00"
+    current_time = d.isoformat("T", timespec="seconds") + "+00:00"
 
     return current_time
 
@@ -143,59 +143,71 @@ def create_order_query(order_query):
 
             return False
 
+    elif order_type == "Buy" and instrument == "currency":
+
+        print("Enter price for Buy operation:")
+        order_price = float(input(">>"))
+
+        lot_size = market.get_ticker_lot_size(order_data)
+        print("1 lot size:", lot_size)
+        print("Enter amount in lot's:")
+        amount = int(input(">>"))
+
+        commission_raw = order_price * lot_size * amount / 100 * broker_commission
+        order_price_total_raw = (order_price * lot_size * amount)
+        commission = round(commission_raw, 2)
+        order_price_total = round(order_price_total_raw, 2)
+        created_at = get_current_time()
+        operation_id = trader.generate_random_id()
+        # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
+        order_status = False  # TODO сheck where it used
+        order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+
+        # need to subtract money from wallet and hold before order will be done
+        if wallet_subtract_money_for_buy(order_query):
+            create_orders_query(order_query)
+            return True
+        else:
+            print("Order is not ready, please repeat")
+            return False
+
     elif order_type == "Sell" and instrument == "currency":
 
-        print("Enter operation id to sell ")
-        buy_operation_id = int(input(">>"))
+        if current_wallet_data["USD"] > 0.:
 
-        portfolio_all_data = trader.portfolio_show_current(user_id)
-        portfolio_data = (portfolio_all_data[portfolio_all_data["operation_id"] == buy_operation_id])
-        if not portfolio_data.empty:
-            # check if order have one operation_id for buy and sell order early
+            print("Available amount for sell:", current_wallet_data["USD"])
 
-            if len(portfolio_data) == 2 and len(portfolio_data["order_type"].unique()) == 2:
-                print("Order: ", buy_operation_id, "closed completely")
+            if current_ticker_price == "TickerNotFound":
+                print(ticker, current_ticker_price, "return False")
                 return False
             else:
-                portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == buy_operation_id]
-                current_ticker_price = market.get_ticker_price(order_data)
-                print("Current price:", current_ticker_price)
-                if current_ticker_price == "TickerNotFound":
-                    print(ticker, current_ticker_price, "return False")
-                    return False
-                else:
-                    print("price increment is:", market.get_ticker_min_price_increment(order_data))
-                    print("Enter price for Sell operation:")
-                    order_price = float(input(">>"))
-                    lot_size = market.get_ticker_lot_size(order_data)
-                    print("1 lot size:", lot_size)
-                    print("Enter amount in lot's:")
 
-                    amount = int(portfolio_order_data["amount"].values)
-                    print("amount:", amount)
-                    currency = market.get_ticker_currency(order_data)
-                    commission_raw = order_price * lot_size * amount / 100 * broker_commission
-                    order_price_total_raw = order_price * lot_size * amount
-                    commission = round(commission_raw, 2)
-                    order_price_total = round(order_price_total_raw, 2)
-                    created_at = get_current_time()
+                print("Enter price for Sell operation:")
+                order_price = float(input(">>"))
+                lot_size = market.get_ticker_lot_size(order_data)
+                print("1 lot size:", lot_size)
+                print("Enter amount in lot's for sell:")
+                # available amount at wallet
+                amount = int(input(">>"))
+                currency = market.get_ticker_currency(order_data)
+                commission_raw = order_price * lot_size * amount / 100 * broker_commission
+                order_price_total_raw = order_price * lot_size * amount
+                commission = round(commission_raw, 2)
+                order_price_total = round(order_price_total_raw, 2)
+                created_at = get_current_time()
 
-                    # use historical id to easy close this orders in future
-                    operation_id = buy_operation_id
-                    order_status = False
-                    order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                                   created_at, operation_id, instrument, order_status, commission,
-                                   broker_commission]
-                    print("You create sell order: ", order_query)
-                    # need to hold money  USD currency from wallet
-                    if hold_money_for_currency_sell(order_query):
-                        # need to add money to wallet after order will be done
-                        # check if trader portfolio have data for sell
-                        create_orders_query(order_query)
-                    return True
-        elif portfolio_data.empty:
-            print(buy_operation_id, "Order not found")
-            return False
+                # use new id or use from history?
+                operation_id = trader.generate_random_id()
+                order_status = False
+                order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
+                               created_at, operation_id, instrument, order_status, commission,
+                               broker_commission]
+                print("You create sell order: ", order_query)
+                # need to hold money  USD currency from wallet
+                if hold_money_for_currency_sell(order_query):
+                    create_orders_query(order_query)
+                return True
 
     elif order_type == "Sell" and instrument == "stocks":
 
@@ -342,9 +354,7 @@ def wallet_subtract_money_for_buy(order_data):
                                              "operation_id": operation_id,
                                              "instrument": instrument},
                                             ignore_index=True)
-
             # commission
-
             df = df.append({"currency": currency,
                             "amount": 0 - commission,
                             "date_time": created_at,
@@ -382,20 +392,18 @@ def wallet_subtract_money_for_buy(order_data):
                                                  "operation_id": operation_id,
                                                  "instrument": instrument},
                                                 ignore_index=True)
-
-                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-
-                wallet_history_data = trader.wallet_show_history(account_id)
-                df = wallet_history_data.append({"currency": currency,
-                                                 "amount": 0 - commission,
-                                                 "date_time": created_at,
-                                                 "operation": broker_commission,
-                                                 "operation_id": operation_id,
-                                                 "instrument": instrument},
-                                                ignore_index=True)
+                # commission
+                df = df.append({"currency": currency,
+                                "amount": 0 - commission,
+                                "date_time": created_at,
+                                "operation": broker_commission,
+                                "operation_id": operation_id,
+                                "instrument": instrument},
+                               ignore_index=True)
 
                 df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
                 return True
+
             elif wallet_current_data["RUB"] < 0.:
                 print("You don't have enough money for this operation")
                 print(trader.wallet_show_current(account_id))
@@ -419,17 +427,14 @@ def wallet_subtract_money_for_buy(order_data):
                                                  "operation_id": operation_id,
                                                  "instrument": instrument},
                                                 ignore_index=True)
-
-                df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
-
-                wallet_history_data = trader.wallet_show_history(account_id)
-                df = wallet_history_data.append({"currency": currency,
-                                                 "amount": 0 - commission,
-                                                 "date_time": created_at,
-                                                 "operation": broker_commission,
-                                                 "operation_id": operation_id,
-                                                 "instrument": instrument},
-                                                ignore_index=True)
+                # commission
+                df = df.append({"currency": currency,
+                                "amount": 0 - commission,
+                                "date_time": created_at,
+                                "operation": broker_commission,
+                                "operation_id": operation_id,
+                                "instrument": instrument},
+                               ignore_index=True)
 
                 df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
@@ -464,7 +469,6 @@ def wallet_add_money_for_sell(order_data):
                    created_at, operation_id]
     print("Money to add:", order_price_total)
     print(order_query)
-
 
     account_id = user_id
     # check if this file exist
@@ -558,7 +562,7 @@ def wallet_add_money_for_sell(order_data):
         elif currency == "USD":
             wallet_current_data["USD"] -= commission
             wallet_current_data["USD"] += order_price_total
-            wallet_current_data["USD"] =round(wallet_current_data["USD"], 2)
+            wallet_current_data["USD"] = round(wallet_current_data["USD"], 2)
             if wallet_current_data["USD"] >= 0.:
                 with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                     file.write(json.dumps(wallet_current_data))
@@ -649,7 +653,6 @@ def create_orders_query(order_query):
                        }]
         with open('files/orders_query.txt', 'w+') as file:
             file.write(json.dumps(first_data))
-            print("New order_query_created")
 
         return True
 
@@ -680,7 +683,7 @@ def check_new_orders(account_id):
                 if order_status_response[0]:
                     print("Order ", order_data["operation_id"], "status is:", order_status_response[0])
                     order_done_at = (order_status_response[1]).isoformat("T")
-                    order_data.update({"order_done_at": order_done_at })
+                    order_data.update({"order_done_at": order_done_at})
                     # remove done order from order_query
                     new_order_list.remove(order_data)
                     with open('files/orders_query.txt', 'w+') as file:
@@ -707,8 +710,53 @@ def check_new_orders(account_id):
                                       order_data["instrument"], order_data["order_type"]
                                       ]
                         trader.wallet_add_money(data_query)
-                        # add data about done order to potrfolio_current
-                        trader.portfolio_current_add_order(order_data)
+                        # add data about done order to portfolio_current TODO keep as one operation_id
+                        # 1 check if there any USDRUB in portfolio current
+                        portfolio_all_data = trader.portfolio_show_current(order_data["user_id"])
+                        portfolio_data = (portfolio_all_data[portfolio_all_data["ticker"] == order_data["ticker"]])
+                        if not portfolio_data.empty:
+                            # get data about USDRUB from current portfolio
+                            print("portfolio data:\n", portfolio_data)
+                            # calculate average price for new order: sum of orders order_price_total / sum of amounts
+                            order_total_price = order_data["order_price_total"]
+                            order_amount = order_data["amount"]
+                            order_commission = order_data["commission"]
+                            portfolio_total_price = (portfolio_data["order_price_total"]).values[0]
+                            portfolio_amount = portfolio_data["amount"].values[0]
+                            portfolio_commission = portfolio_data["commission"].values[0]
+
+                            sum_of_amounts = round(order_amount + portfolio_amount, 2)
+                            sum_of_price_totals = round(order_total_price + portfolio_total_price, 2)
+                            average_price = round(sum_of_price_totals / sum_of_amounts, 2)
+
+                            sum_of_commissions = round(order_commission + portfolio_commission, 2)
+
+                            # next step: delete from portfolio old data and save new
+
+                            without_dropped_data = portfolio_all_data.drop([0])
+
+                            df = without_dropped_data.append({"order_type": order_data["order_type"],
+                                                              "ticker": order_data["ticker"],
+                                                              "order_price": average_price,
+                                                              "amount": sum_of_amounts,
+                                                              "currency": order_data["currency"],
+                                                              "order_price_total": sum_of_price_totals,
+                                                              "commission": sum_of_commissions,
+                                                              "order_created_at": order_data["created_at"],
+                                                              "operation_id": order_data["operation_id"],
+                                                              "instrument": order_data["instrument"],
+                                                              "order_done_at": order_data["order_done_at"],
+                                                              },
+                                                             ignore_index=True)
+                            # save to csv
+                            df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+
+
+
+                        # there is no orders in current portfolio add one
+                        elif portfolio_data.empty:
+
+                            trader.portfolio_current_add_order(order_data)
 
                     elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
                         print("You sell USDRUB , need to add money to wallet RUB ")

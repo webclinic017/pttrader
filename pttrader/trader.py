@@ -474,8 +474,6 @@ def portfolio_move_from_current(order_data):
     account_id = order_data["user_id"]
     operation_id = order_data["operation_id"]
 
-
-
     order_type = "Buy"
 
     portfolio_all_data = portfolio_show_current(account_id)
