@@ -33,9 +33,10 @@ def wallet_create_new(account_id):
 
     print("Only RUB supported now as main currency.")
     main_currency = "RUB"
+    broker_commission = 0.3
     if main_currency == "RUB":
 
-        wallet_current_data = {main_currency: 0., "USD": 0.}
+        wallet_current_data = {main_currency: 0., "USD": 0., "broker_commission": broker_commission}
         with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
             file.write(json.dumps(wallet_current_data))
 
@@ -56,6 +57,35 @@ def wallet_create_new(account_id):
     else:
         print("Sorry, only RUB supported now. You type:", main_currency)
         return False
+
+
+def wallet_set_broker_commission(data_query):
+    account_id = data_query[0]
+    broker_commission = data_query[1]
+    # check if this file exist
+    if is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
+
+        wallet_current_data = wallet_show_current(account_id)
+        wallet_current_data["broker_commission"] = broker_commission
+        # write new data to wallet_current
+        with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+            file.write(json.dumps(wallet_current_data))
+
+        return True
+
+    elif not is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
+        if wallet_create_new(account_id):
+            wallet_current_data = wallet_show_current(account_id)
+            wallet_current_data["broker_commission"] = broker_commission
+            # write new data to wallet_current
+            with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+                file.write(json.dumps(wallet_current_data))
+                return True
+
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        return False
+
 
 
 def wallet_add_money(data_query):

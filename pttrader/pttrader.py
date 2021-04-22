@@ -67,8 +67,8 @@ def market_manager(user_account_id):
         elif user_input == "wallet history":
             print("User ID: ", str(current_user_id))
             wallet_history_data = trader.wallet_show_history(current_user_id)
-
-            print(wallet_history_data)
+            #show last 10 operations
+            print(wallet_history_data.tail(10))
             user_input = ""
         # wallet add money
         elif user_input == "wallet add":
@@ -86,6 +86,17 @@ def market_manager(user_account_id):
 
             print(trader.wallet_show_current(current_user_id))
             user_input = ""
+        # wallet add money
+        elif user_input == "broker commission":
+            # get input data from user
+
+            print("Enter commission rate to add:")
+            broker_commission = float(trader.get_user_input_data())
+
+            data_query = [current_user_id, broker_commission]
+            if trader.wallet_set_broker_commission(data_query):
+                print(trader.wallet_show_current(current_user_id))
+                user_input = ""
         # portfolio show history
         elif user_input == "portfolio current":
 
@@ -94,8 +105,8 @@ def market_manager(user_account_id):
         # portfolio show history
         elif user_input == "portfolio history":
             # trader.portfolio_show_history(current_user_id)
-
-            print(trader.portfolio_show_history(current_user_id))
+            # show last 10 operations
+            print((trader.portfolio_show_history(current_user_id)).tail(10))
             user_input = ""
         # check_user_input
         else:

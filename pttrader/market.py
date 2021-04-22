@@ -276,184 +276,196 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     ticker = order_data["ticker"]
     order_price = order_data["order_price"]
     currency = order_data["currency"]
-    created_at = order_data["created_at"]
+    created_at_raw = order_data["created_at"]
     instrument = order_data['instrument']
     # authorisation
     with open('data_for_tinkoff_api.txt', "r") as file:
         token = file.read()
     client = openapi.api_client(token)
-
+    created_at = created_at_raw.split(sep="+")[0]
+    created_at += "Z"
     now = broker.get_current_time()
 
     interval = "1min"  # valid intervals ("1min","2min","3min","5min","10min","15min",
     # "30min","hour","2hour","4hour","day","week","month")
 
-    # for russian stocks
-    if currency == "RUB" and instrument == "stocks":  # russian stocks
-        print("Try to get data from tinkoff for ", ticker, "instrument:", instrument, "created_at", created_at)
+    print("created_at",created_at)
+    print("now",now)
+    #print("now-created_at", now - created_at)
 
-        get_figi = client.market.market_search_by_ticker_get(ticker)
-        figi = get_figi.payload.instruments[0].figi
+    # this is always true!
+    if created_at != now:
+        # for russian stocks
+        if currency == "RUB" and instrument == "stocks":  # russian stocks
+            print("Try to get data from tinkoff for ", ticker, "instrument:", instrument, "created_at", created_at)
 
-        candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
-        # print(candles_data.payload.candles[0])
-        # print("data", data)
-        if order_type == "Buy":
+            get_figi = client.market.market_search_by_ticker_get(ticker)
+            figi = get_figi.payload.instruments[0].figi
 
-            for candle in candles_data.payload.candles:
+            candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
+            # print(candles_data.payload.candles[0])
+            # print("data", data)
+            if order_type == "Buy":
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to buy
-                if order_price >= price_low:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
-            # if all price data not meet condition to buy
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+                for candle in candles_data.payload.candles:
 
-        elif order_type == "Sell":
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to buy
+                    if order_price >= price_low:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
+                # if all price data not meet condition to buy
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
-            for candle in candles_data.payload.candles:
+            elif order_type == "Sell":
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to sell
-                if order_price <= price_high:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
+                for candle in candles_data.payload.candles:
 
-            # if all price data not meet condition to sell
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to sell
+                    if order_price <= price_high:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
 
-    # for currency
-    elif currency == "RUB" and ticker == "USDRUB":
+                # if all price data not meet condition to sell
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
-        print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
-        ticker = "USD000UTSTOM"
-        get_figi = client.market.market_search_by_ticker_get(ticker)
-        figi = get_figi.payload.instruments[0].figi
+        # for currency
+        elif currency == "RUB" and ticker == "USDRUB":
 
-        candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
+            print("elif RUB and USDRUB Try to get data for ", ticker, "instrument:", instrument)
+            ticker = "USD000UTSTOM"
+            get_figi = client.market.market_search_by_ticker_get(ticker)
+            figi = get_figi.payload.instruments[0].figi
 
-        if order_type == "Buy":
-            for candle in candles_data.payload.candles:
+            candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to buy
-                if order_price >= price_low:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
-            # if all price data not meet condition to buy
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+            if order_type == "Buy":
+                for candle in candles_data.payload.candles:
+
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to buy
+                    if order_price >= price_low:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
+                # if all price data not meet condition to buy
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
 
-        elif order_type == "Sell":
+            elif order_type == "Sell":
 
-            for candle in candles_data.payload.candles:
+                for candle in candles_data.payload.candles:
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to sell
-                if order_price <= price_high:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to sell
+                    if order_price <= price_high:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
 
-            # if all price data not meet condition to sell
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+                # if all price data not meet condition to sell
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
-    # for foreign stocks
-    elif currency == "USD" and instrument == "stocks":
-        print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
-        get_figi = client.market.market_search_by_ticker_get(ticker)
-        figi = get_figi.payload.instruments[0].figi
+        # for foreign stocks
+        elif currency == "USD" and instrument == "stocks":
+            print("elif USD and stock Try to get data for ", ticker, "instrument:", instrument)
+            get_figi = client.market.market_search_by_ticker_get(ticker)
+            figi = get_figi.payload.instruments[0].figi
 
-        candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
+            candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
 
-        if order_type == "Buy":
+            if order_type == "Buy":
 
-            for candle in candles_data.payload.candles:
+                for candle in candles_data.payload.candles:
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to buy
-                if order_price >= price_low:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
-            # if all price data not meet condition to buy
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to buy
+                    if order_price >= price_low:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
+                # if all price data not meet condition to buy
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
-        elif order_type == "Sell":
+            elif order_type == "Sell":
 
-            for candle in candles_data.payload.candles:
+                for candle in candles_data.payload.candles:
 
-                price_open = candle.o
-                price_high = candle.h
-                price_low = candle.l
-                price_close = candle.c
-                time_data = candle.time
-                volume = candle.v
-                # condition to sell
-                if order_price <= price_high:
-                    order_done_at = time_data
-                    flag = True
-                    order_status = [flag, order_done_at]
-                    return order_status
+                    price_open = candle.o
+                    price_high = candle.h
+                    price_low = candle.l
+                    price_close = candle.c
+                    time_data = candle.time
+                    volume = candle.v
+                    # condition to sell
+                    if order_price <= price_high:
+                        order_done_at = time_data
+                        flag = True
+                        order_status = [flag, order_done_at]
+                        return order_status
 
-            # if all price data not meet condition to sell
-            order_done_at = broker.get_current_time()
-            flag = False
-            order_status = [flag, order_done_at]
-            return order_status
+                # if all price data not meet condition to sell
+                order_done_at = broker.get_current_time()
+                flag = False
+                order_status = [flag, order_done_at]
+                return order_status
 
+        else:
+            print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+            return False
     else:
-        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
-        return False
 
+        order_done_at = broker.get_current_time()
+        flag = False
+        order_status = [flag, order_done_at]
+        return order_status
 
 
