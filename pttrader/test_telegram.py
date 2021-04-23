@@ -1,8 +1,18 @@
-import time
+
 import login
 import trader
 import broker
 
+import logging
+from telegram import Update, ForceReply
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -112,30 +122,81 @@ def market_manager(user_account_id):
         else:
             print("Waiting for user command, you in else branch")
             user_input = input(">>")
-            # check_new_orders()
-            time.sleep(1)  # make pause for 5 sec for checking price changes
-            # print("Sleep 5 sec")
+
+def start(update: Update, _: CallbackContext) -> None:
+    update.message.reply_text('Hi! Please type your login')
 
 
-def main():
-    # starting program, waiting for  User input and user account_id return
-    print("Please type your login ")
-    input_user_login = input("Login >>")
-    print("Type your Account id: (use only integer numbers)")
+def help_command(update: Update, _: CallbackContext) -> None:
+    """Send a message when the command /help is issued."""
+    update.message.reply_text('Help!')
 
-    while True:
-        try:
-            input_account_id = int(input("Account id >>"))
-        except ValueError:
-            print("you type not integer number. Example: 123456")
-            continue
-        else:
-            break
 
-    response_from_login_module = login.user_logging(input_user_login, input_account_id)
+def echo(update: Update, _: CallbackContext) -> None:
+    """Echo the user message."""
+    update.message.reply_text(update.message.text)
 
-    # main cycle
-    market_manager(response_from_login_module)
+
+def login_command(update: Update, _: CallbackContext) -> None:
+
+    login = MessageHandler()
+
+    print(login)
+
+
+def get_my_token() -> str:
+
+    with open('data_for_telegram.txt', "r") as file:
+        token = file.read()
+    return token
+
+def main() -> None:
+    # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
+
+    """Start the bot."""
+    # Create the Updater and pass it your bot's token.
+    updater = Updater(get_my_token())
+
+    # Get the dispatcher to register handlers
+    dispatcher = updater.dispatcher
+
+
+    # on different commands - answer in Telegram
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("login", login_command))
+
+    # on non command i.e message - echo the message on Telegram
+    #dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    # bot's text handlers
+    text_update_handler = MessageHandler(Filters.text, filter_text_input)
+    dispatcher.add_handler(text_update_handler)
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until you press Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT. This should be used most of the time, since
+    # start_polling() is non-blocking and will stop the bot gracefully.
+    updater.idle()
+
+    # # starting program, waiting for  User input and user account_id return
+    # print("Please type your login ")
+    # input_user_login = input("Login >>")
+    # print("Type your Account id: (use only integer numbers)")
+    #
+    # while True:
+    #     try:
+    #         input_account_id = int(input("Account id >>"))
+    #     except ValueError:
+    #         print("you type not integer number. Example: 123456")
+    #         continue
+    #     else:
+    #         break
+    # response_from_login_module = login.user_logging(input_user_login, input_account_id)
+    #
+    # # main cycle
+    # market_manager(response_from_login_module)
 
 
 if __name__ == "__main__":
