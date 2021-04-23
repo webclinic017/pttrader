@@ -37,7 +37,6 @@ def create_order_query(order_query):
     # Your broker commission 0.3%
     current_wallet_data = trader.wallet_show_current(user_id)
     broker_commission = current_wallet_data["broker_commission"]
-    # tinkoff_tarif_treyder = 0.05
 
     order_type = order_query[0]
     print("Enter ticker name:")
@@ -695,8 +694,6 @@ def check_new_orders(account_id):
                         # add data about done order to potrfolio_current
                         trader.portfolio_current_add_order(order_data)
 
-
-
                     elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                         # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
@@ -707,14 +704,16 @@ def check_new_orders(account_id):
 
                     elif order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
                         data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"],
-                                      order_data["instrument"], order_data["order_type"]
-                                      ]
+                                      order_data["instrument"], order_data["order_type"]]
+                        # add money to trader wallet
                         trader.wallet_add_money(data_query)
+
                         # add data about done order to portfolio_current TODO keep as one operation_id
                         # 1 check if there any USDRUB in portfolio current
                         portfolio_all_data = trader.portfolio_show_current(order_data["user_id"])
                         portfolio_data = (portfolio_all_data[portfolio_all_data["ticker"] == order_data["ticker"]])
                         if not portfolio_data.empty:
+
                             # get data about USDRUB from current portfolio
                             print("portfolio data:\n", portfolio_data)
                             # calculate average price for new order: sum of orders order_price_total / sum of amounts
@@ -761,14 +760,73 @@ def check_new_orders(account_id):
 
                     elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
                         print("You sell USDRUB , need to add money to wallet RUB ")
-                        # add data to wallet history
-                        # also need to move data about Buy operation id to portfolio history
-                        # add money to user_id wallet
+                        # add data to wallet history and add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
-                        # add data about Sell order to portfolio history file
-                        trader.portfolio_history_add_order(order_data)
-                        # delete data about orders from portfolio current and write to portfolio history
-                        trader.portfolio_move_from_current(order_data)
+
+                        # 1) subtract order amount from amount in portfolio_current
+                        # 2) subtract order total price from Number in portfolio_current
+                        # recalculate average price
+                        # 3) add order commission to Number in portfolio_current and rewrite portfolio_current file
+                        portfolio_all_data = trader.portfolio_show_current(order_data["user_id"])
+                        portfolio_data = (portfolio_all_data[portfolio_all_data["ticker"] == order_data["ticker"]])
+                        if not portfolio_data.empty:
+                            # if 0 $ amount at current wallet
+                            # order_amount == portfolio_amount
+                            current_wallet_data = trader.wallet_show_current(account_id)
+
+                            # get data about USDRUB from current portfolio
+                            print("portfolio data:\n", portfolio_data)
+                            # calculate average price for new order: sum of orders order_price_total / sum of amounts
+                            order_total_price = order_data["order_price_total"]
+                            order_amount = order_data["amount"]
+                            order_commission = order_data["commission"]
+                            portfolio_total_price = (portfolio_data["order_price_total"]).values[0]
+                            portfolio_amount = portfolio_data["amount"].values[0]
+                            portfolio_commission = portfolio_data["commission"].values[0]
+                            if current_wallet_data["USD"] == 0 and order_amount == portfolio_amount:
+
+                                #this is last order, remove from portfolio
+                                get_index_number = portfolio_data["commission"].index.values[0]
+                                print("index num:", get_index_number)
+                                without_dropped_data = portfolio_all_data.drop([get_index_number])
+                                # save to csv
+                                without_dropped_data.to_csv("files/portfolio_current_" + str(account_id) + ".csv",
+                                                            index=False)
+
+
+                            else:
+
+                                dif_of_amounts = round(portfolio_amount - order_amount, 2)
+
+                                dif_of_price_totals = round(portfolio_total_price - order_total_price, 2)
+
+                                average_price = round(dif_of_price_totals / dif_of_amounts, 2)
+
+                                sum_of_commissions = round(order_commission + portfolio_commission, 2)
+
+                                # next step: delete from portfolio old data and save new
+                                get_index_number = portfolio_data["commission"].index.values[0]
+                                print("index num:", get_index_number)
+                                without_dropped_data = portfolio_all_data.drop([get_index_number])
+
+                                df = without_dropped_data.append({"order_type": order_data["order_type"],
+                                                                  "ticker": order_data["ticker"],
+                                                                  "order_price": average_price,
+                                                                  "amount": dif_of_amounts,
+                                                                  "currency": order_data["currency"],
+                                                                  "order_price_total": dif_of_price_totals,
+                                                                  "commission": sum_of_commissions,
+                                                                  "order_created_at": order_data["created_at"],
+                                                                  "operation_id": order_data["operation_id"],
+                                                                  "instrument": order_data["instrument"],
+                                                                  "order_done_at": order_data["order_done_at"],
+                                                                  },
+                                                                 ignore_index=True)
+                                # save to csv
+                                df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+
+                        # delete data about order if amount in order = amount from portfolio current
+
 
                 elif not order_status_response[0]:
                     print("Order status = False")

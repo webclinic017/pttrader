@@ -13,47 +13,75 @@ def get_stock_data(order_data):
     for stock https://api-invest.tinkoff.ru/trading/stocks/get?ticker=
     for currency api is https://api-invest.tinkoff.ru/trading/currency/get?ticker=USDRUB
     :return: stock_data
+
+    {'payload': {'instruments': [{'currency': 'RUB',
+                              'figi': 'BBG004730N88',
+                              'isin': 'RU0009029540',
+                              'lot': 10,
+                              'min_price_increment': 0.01,
+                              'name': 'Сбер Банк',
+                              'ticker': 'SBER',
+                              'type': 'Stock'}],
+             'total': 1.0},
+ 'status': 'Ok',
+ 'tracking_id': 'ad909d0e2e8b06cd'}
     """
     instrument = order_data[0]
     ticker = order_data[1]
-    url = "https://api-invest.tinkoff.ru/trading/" + str(instrument) + "/get?ticker=" + str(ticker)
-
-    headers = {
-        'User-Agent': "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17"}
-    req = requests.get(url, headers=headers)
-    resp = req.json()
-    stock_data = resp["payload"]
+    if ticker == "USDRUB":
+        ticker = "USD000UTSTOM"
+    client = tinkof_api_auth()
+    stock_data = client.market.market_search_by_ticker_get(ticker)
 
     return stock_data
 
 
 def get_ticker_price(order_data):
     """
-    This function get data from https://api-invest.tinkoff.ru/trading/stocks/get?ticker api and return ticker price
+    This function get data from api and return ticker price
     return current price of the ticker
+
+    {'c': 288.21,
+     'figi': 'BBG004730N88',
+     'h': 288.21,
+     'interval': '1min',
+     'l': 288.12,
+     'o': 288.18,
+     'time': datetime.datetime(2021, 4, 21, 14, 40, tzinfo=tzutc()),
+     'v': 3040}
     """
     stock_data = get_stock_data(order_data)
-    key = 'code'
-    if stock_data.get(key) is not None:
-        if stock_data['code'] == 'TickerNotFound':
-            code = "TickerNotFound"
-            return code
-    else:
-        current_price_data = stock_data['price']
-        current_price = current_price_data['value']
+    figi = stock_data.payload.instruments[0].figi
+    client = tinkof_api_auth()
 
-        return current_price
+    now = datetime.datetime.utcnow()
+    created_at = now - datetime.timedelta(minutes=2)
+    current_time = now.isoformat("T", timespec="seconds") + "Z"
+    minute_before = created_at.isoformat("T", timespec="seconds") + "Z"
+
+    interval = "1min"
+    candles_data = (client.market.market_candles_get(figi=figi, _from=minute_before, to=current_time, interval=interval))
+    # need to get last minutw close ticker price
+    print(candles_data)
+    current_price = candles_data.payload.candles[0].c
+
+    return current_price
 
 
 def get_ticker_lot_size(order_data):
     """
-    This function get data from https://api-invest.tinkoff.ru/trading/stocks/get?ticker api
+    This function get data from  api
     return ticker lot
 
     """
     stock_data = get_stock_data(order_data)
-    lot_size_data = stock_data['symbol']
-    lot_size = lot_size_data['lotSize']
+
+    lot_size = stock_data.payload.instruments[0].lot
+
+    if order_data[1] == "USDRUB":
+        print("Lot size at market  is:", lot_size)
+        lot_size = 1
+        print("Changed for minimum lot:", lot_size)
 
     return lot_size
 
@@ -65,30 +93,24 @@ def get_ticker_min_price_increment(order_data):
 
     """
     stock_data = get_stock_data(order_data)
-    min_price_increment_data = stock_data['symbol']
-    min_price_increment = min_price_increment_data['minPriceIncrement']
+
+    min_price_increment = stock_data.payload.instruments[0].min_price_increment
 
     return min_price_increment
 
 
 def get_ticker_currency(order_data):
     """
-    This function get data from https://api-invest.tinkoff.ru/trading/stocks/get?ticker api
+    This function get data from  api
     return ticker currency
 
     """
 
     stock_data = get_stock_data(order_data)
-    key = 'code'
-    if stock_data.get(key) is not None:
-        if stock_data['code'] == 'TickerNotFound':
-            code = "TickerNotFound"
-            return code
-    else:
-        current_price_data = stock_data['price']
-        ticker_currency = current_price_data['currency']
 
-        return ticker_currency  # return current price of the ticker
+    ticker_currency = stock_data.payload.instruments[0].currency
+
+    return ticker_currency  # return current price of the ticker
 
 
 def get_ticker_historical_data(order_data):
@@ -278,10 +300,8 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     currency = order_data["currency"]
     created_at_raw = order_data["created_at"]
     instrument = order_data['instrument']
-    # authorisation
-    with open('data_for_tinkoff_api.txt', "r") as file:
-        token = file.read()
-    client = openapi.api_client(token)
+    client = tinkof_api_auth()
+
     created_at = created_at_raw.split(sep="+")[0]
     created_at += "Z"
     now = broker.get_current_time()
@@ -289,9 +309,9 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     interval = "1min"  # valid intervals ("1min","2min","3min","5min","10min","15min",
     # "30min","hour","2hour","4hour","day","week","month")
 
-    print("created_at",created_at)
-    print("now",now)
-    #print("now-created_at", now - created_at)
+    print("created_at", created_at)
+    print("now", now)
+    # print("now-created_at", now - created_at)
 
     # this is always true!
     if created_at != now:
@@ -469,3 +489,10 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
         return order_status
 
 
+def tinkof_api_auth():
+    # authorisation
+    with open('data_for_tinkoff_api.txt', "r") as file:
+        token = file.read()
+    client = openapi.api_client(token)
+
+    return client
