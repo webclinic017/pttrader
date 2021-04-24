@@ -152,6 +152,8 @@ def get_my_token() -> str:
 
 def main() -> None:
     # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
+    from bot_utils import module_logger
+    module_logger.info("Start the @CryptoCoinsInfoBot bot!")
 
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
@@ -180,23 +182,26 @@ def main() -> None:
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
-    # # starting program, waiting for  User input and user account_id return
-    # print("Please type your login ")
-    # input_user_login = input("Login >>")
-    # print("Type your Account id: (use only integer numbers)")
-    #
-    # while True:
-    #     try:
-    #         input_account_id = int(input("Account id >>"))
-    #     except ValueError:
-    #         print("you type not integer number. Example: 123456")
-    #         continue
-    #     else:
-    #         break
-    # response_from_login_module = login.user_logging(input_user_login, input_account_id)
-    #
-    # # main cycle
-    # market_manager(response_from_login_module)
+def user_logging(text_message):
+    # starting program, waiting for  User input and user account_id return
+
+    user_login = text_message
+    print("Please type your login ")
+    input_user_login = input("Login >>")
+    print("Type your Account id: (use only integer numbers)")
+
+    while True:
+        try:
+            input_account_id = int(input("Account id >>"))
+        except ValueError:
+            print("you type not integer number. Example: 123456")
+            continue
+        else:
+            break
+    response_from_login_module = login.user_logging(input_user_login, input_account_id)
+
+    # main cycle
+    market_manager(response_from_login_module)
 
 
 if __name__ == "__main__":
