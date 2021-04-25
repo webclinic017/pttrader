@@ -3,18 +3,6 @@ import login
 import trader
 import broker
 
-import logging
-from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
-)
-
-logger = logging.getLogger(__name__)
-
-
 
 
 def market_manager(user_account_id):
@@ -152,35 +140,35 @@ def get_my_token() -> str:
 
 def main() -> None:
     # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
+
+    from telegram.ext import Updater
+    from telegram.ext import CommandHandler, MessageHandler, Filters
+
     from bot_utils import module_logger
-    module_logger.info("Start the @CryptoCoinsInfoBot bot!")
+    from handlers_bot import filter_text_input, error, start, download_api_coinslists_handler
 
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    updater = Updater(get_my_token())
+    module_logger.info("Start the @pttraderbot bot!")
 
-    # Get the dispatcher to register handlers
+    # create an object "bot"
+    updater = Updater(token=get_my_token(), use_context=True)
     dispatcher = updater.dispatcher
 
+    # bot's error handler
+    dispatcher.add_error_handler(error)
 
-    # on different commands - answer in Telegram
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("login", login_command))
-
-    # on non command i.e message - echo the message on Telegram
-    #dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    # bot's command handlers
+    start_handler = CommandHandler('start', start)
+    dispatcher.add_handler(start_handler)
 
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
     dispatcher.add_handler(text_update_handler)
-    # Start the Bot
-    updater.start_polling()
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
+
+    # bot's text handlers
+    text_update_handler = MessageHandler(Filters.text, filter_text_input)
+    dispatcher.add_handler(text_update_handler)
+
 
 def user_logging(text_message):
     # starting program, waiting for  User input and user account_id return
