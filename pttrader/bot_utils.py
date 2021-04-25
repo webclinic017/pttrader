@@ -1,27 +1,29 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+import reply_markups as rm
+import handlers_bot
 
 # start logging to the file of current directory or º it to console
-# logging.basicConfig(level=logging.INFO,
-#                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# module_logger = logging.getLogger(__name__)
-
-# start logging to the file with log rotation at midnight of each day
-formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
-handler = TimedRotatingFileHandler(os.path.dirname(os.path.realpath(__file__)) + '/../pttraderbot.log',
-                                   when='midnight',
-                                   backupCount=10)
-handler.setFormatter(formatter)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 module_logger = logging.getLogger(__name__)
-module_logger.addHandler(handler)
-module_logger.setLevel(logging.INFO)
+
+
+# # start logging to the file with log rotation at midnight of each day
+# formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+# handler = TimedRotatingFileHandler(os.path.dirname(os.path.realpath(__file__)) + '/../pttraderbot.log',
+#                                    when='midnight',
+#                                    backupCount=10)
+# handler.setFormatter(formatter)
+# module_logger = logging.getLogger(__name__)
+# module_logger.addHandler(handler)
+# module_logger.setLevel(logging.INFO)
 # end of log section
 
 
 # the functions for logging handlers
 def command_info(update):
-
     if update:
         us_message = str(update.effective_message.text) if update.effective_message.text else 'None'
 
@@ -38,7 +40,6 @@ def command_info(update):
 
 
 def message_info(update):
-
     if update:
         us_message = str(update.message.text) if update.message.text else 'None'
 
@@ -56,14 +57,14 @@ def message_info(update):
         module_logger.info("Has received a message"
                            " \"{}\" from user {}, with id {}".format(us_message, usr_name, us_chat_id))
 
+
 # work with a user's message from update
 def text_simple(usr_msg_text):
-
-    from cryptocoinsinfo.parse_apis import parse_api_coinmarketcapjson, parse_api_cryptocomparejson
-
     # always working with an uppercased text
-    usr_msg_text = usr_msg_text.upper()
-
+    user_login = usr_msg_text[0]
+    user_id = usr_msg_text[1]
+    usr_msg_text = usr_msg_text[2].upper()
+    print("User message upper:", usr_msg_text)
     menu_text_response = ''
     api_response1 = ''
     api_response2 = ''
@@ -71,40 +72,48 @@ def text_simple(usr_msg_text):
 
     if "⬅ page 1".upper() == usr_msg_text:
         menu_text_response = 'page 1'
-        reply_markup_response = reply_markup_p1
+        reply_markup_response = rm.reply_markup_p1
 
     elif "page 2 ➡".upper() == usr_msg_text or '⬅ page 2'.upper() in usr_msg_text:
         menu_text_response = 'page 2'
-        reply_markup_response = reply_markup_p2
+        reply_markup_response = rm.reply_markup_p2
 
     elif "page 3 ➡".upper() == usr_msg_text:
         menu_text_response = 'page 3'
-        reply_markup_response = reply_markup_p3
+        reply_markup_response = rm.reply_markup_p3
 
-    elif "feedback".upper() == usr_msg_text:
-        menu_text_response = '🇷🇺 Присылайте пожалуйста ваши отзывы о боте ' + YOUR_TELEGRAM_ALIAS \
-                               + '\n\n🇬🇧 Send your opinion about the bot to ' + YOUR_TELEGRAM_ALIAS + ', please'
-        reply_markup_response = reply_markup_p3
+    elif "buy".upper() == usr_msg_text:
+        import broker
 
-    # elif "settings" in usr_msg_text:
-    #     text_response = 'coming soon... maybe'
-    #     reply_markup_response = reply_markup_p3
+        request_query = ["Buy", user_id]
+        print("Order, in orders query: ", broker.create_order_query(request_query))
+        api_response1 = broker.create_order_query(request_query)
+        print(api_response1)
+        reply_markup_response = rm.reply_markup_p1
 
-    elif "Bitcoin Cash".upper() == usr_msg_text:
-        api_response1 = parse_api_coinmarketcapjson('BCH')
-        api_response2 = parse_api_cryptocomparejson('BCH')
-        reply_markup_response = reply_markup_p1
+    elif "sell".upper() == usr_msg_text:
+        pass
 
-    elif "Bitcoin".upper() == usr_msg_text:
-        api_response1 = parse_api_coinmarketcapjson('BTC')
-        api_response2 = parse_api_cryptocomparejson('BTC')
-        reply_markup_response = reply_markup_p1
 
-    elif "Ethereum".upper() == usr_msg_text:
-        api_response1 = parse_api_coinmarketcapjson('ETH')
-        api_response2 = parse_api_cryptocomparejson('ETH')
-        reply_markup_response = reply_markup_p1
+    elif "wallet add".upper() == usr_msg_text:
+        # get input data from user
+        import trader
+        currency = "RUB"
 
+        print("Enter amount to add:")
+        amount = float(trader.get_user_input_data())
+        operation_id = trader.generate_random_id()
+        instrument = "currency"
+        operation = "user add"
+        data_query = [user_id, currency, amount, operation_id, instrument, operation]
+        trader.wallet_add_money(data_query)
+
+        print(trader.wallet_show_current(user_id))
+
+
+
+        reply_markup_response = rm.reply_markup_p1
+    """
     elif "EOS".upper() == usr_msg_text:
         api_response1 = parse_api_coinmarketcapjson('EOS')
         api_response2 = parse_api_cryptocomparejson('EOS')
@@ -157,6 +166,7 @@ def text_simple(usr_msg_text):
     else:
         api_response1 = parse_api_coinmarketcapjson(usr_msg_text)
         api_response2 = parse_api_cryptocomparejson(usr_msg_text)
+    """
 
     return {'apiresponse1': api_response1, 'apiresponse2': api_response2,
             'menutextresponse': menu_text_response, 'replymarkupresponse': reply_markup_response}

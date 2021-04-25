@@ -28,24 +28,27 @@ def create_order_query(order_query):
     operation type: Buy or Sell from main cycle
     ticker
     order_price
-    order_price
+
     amount
     created_at
     :return: order query
     """
     user_id = order_query[1]
-    # Your broker commission 0.3%
+
     current_wallet_data = trader.wallet_show_current(user_id)
     broker_commission = current_wallet_data["broker_commission"]
 
     order_type = order_query[0]
+
     print("Enter ticker name:")
     ticker = trader.get_user_input_data()
+
     if ticker == "USDRUB":
         instrument = "currency"
     else:
         instrument = "stocks"
     order_data = [instrument, ticker]
+    # TODO if market is closed. use last date data
     currency = market.get_ticker_currency(order_data)
     if currency == "TickerNotFound":
         print(ticker, currency, "return False")

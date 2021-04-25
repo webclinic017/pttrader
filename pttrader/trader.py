@@ -507,5 +507,14 @@ class Account:
     """
 
     def __init__(self, login, account_id):
-        self.login = login
-        self.account_id = account_id
+        self.user_login = login
+        self.user_account_id = account_id
+
+    def login(self, login):
+        self.user_login = login
+        return login
+
+    def account_id(self, account_id):
+        self.user_account_id = account_id
+        return account_id
+

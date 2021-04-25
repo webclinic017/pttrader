@@ -3,7 +3,11 @@ import login
 import trader
 import broker
 
+from telegram.ext import Updater
+from telegram.ext import CommandHandler, MessageHandler, Filters
 
+from bot_utils import module_logger
+from handlers_bot import filter_text_input, error, start, wallet_add
 
 def market_manager(user_account_id):
     """
@@ -28,6 +32,7 @@ def market_manager(user_account_id):
                   "wallet add \n"
                   "portfolio current \n"
                   "portfolio history\n"
+                  "check"
                   )
             # wait for user new input:
             print("Waiting for user command")
@@ -111,25 +116,6 @@ def market_manager(user_account_id):
             print("Waiting for user command, you in else branch")
             user_input = input(">>")
 
-def start(update: Update, _: CallbackContext) -> None:
-    update.message.reply_text('Hi! Please type your login')
-
-
-def help_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
-
-
-def echo(update: Update, _: CallbackContext) -> None:
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
-
-
-def login_command(update: Update, _: CallbackContext) -> None:
-
-    login = MessageHandler()
-
-    print(login)
 
 
 def get_my_token() -> str:
@@ -140,12 +126,6 @@ def get_my_token() -> str:
 
 def main() -> None:
     # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
-
-    from telegram.ext import Updater
-    from telegram.ext import CommandHandler, MessageHandler, Filters
-
-    from bot_utils import module_logger
-    from handlers_bot import filter_text_input, error, start, download_api_coinslists_handler
 
     module_logger.info("Start the @pttraderbot bot!")
 
@@ -160,16 +140,30 @@ def main() -> None:
     start_handler = CommandHandler('start', start)
     dispatcher.add_handler(start_handler)
 
-    # bot's text handlers
-    text_update_handler = MessageHandler(Filters.text, filter_text_input)
-    dispatcher.add_handler(text_update_handler)
-
+    wallet_add_money = CommandHandler('walletadd', wallet_add)
+    dispatcher.add_handler(wallet_add_money)
 
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
     dispatcher.add_handler(text_update_handler)
 
+    #
+    # *** here put the job for the bot ***
+    #
+    # add tasks to parse APIs from sites-aggregators to local JSON-files, is used time interval, coz
+    # APIs (CMC) have pricing plans with limits
+    #job_queue = updater.job_queue
+    #job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 5, context='coinmarketcap')
+    #job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 10, context='cryptocompare')
 
+    # Start the Bot start_polling() method
+    # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT
+    updater.start_polling()
+    updater.idle()
+
+
+# from old part
 def user_logging(text_message):
     # starting program, waiting for  User input and user account_id return
 

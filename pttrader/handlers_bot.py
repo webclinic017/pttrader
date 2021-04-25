@@ -5,34 +5,68 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.ext.dispatcher import run_async
 
-from cryptocoinsinfo.utils import command_info, message_info, text_simple, module_logger
-from cryptocoinsinfo.reply_markups import *
-from cryptocoinsinfo.config import *
+import bot_utils
+import login
+import reply_markups as rm
+import trader
+
+
+# from cryptocoinsinfo.reply_markups import *
+# from cryptocoinsinfo.config import *
 
 
 # send a start message, command handler
 @run_async
 def start(update: Update, context: CallbackContext):
-
-    command_info(update)
+    bot_utils.command_info(update)
 
     usr_name = update.message.from_user.first_name
     if update.message.from_user.last_name:
         usr_name += ' ' + update.message.from_user.last_name
     usr_chat_id = update.message.chat_id
 
-    text_response = '🇷🇺 Привет, ' + usr_name + '. Я твой Инфо Крипто Бот! Чтобы узнать цену какой-либо криптовалюты, ' \
-                    ' используй клавиатуру или отправь мне *сообщение с названием или тикером* монеты/токена.' \
-                    '\n\n🇬🇧 Hello, ' + usr_name + '. I am your Crypto Coins Info Bot! For receive a price of some' \
-                    ' crypto use a keyboard or send me *a message with a name or a ticker* of a coin/token.'
+    text_response = '🇷🇺 Привет, ' + usr_name
+    text_response_new_user = '🇷🇺 Привет, ' + usr_name + '. Я твой Инфо Крипто Бот! Чтобы узнать цену какой-либо криптовалюты, ' \
+                                                          ' используй клавиатуру или отправь мне *сообщение с названием или тикером* монеты/токена.' \
+                                                          '\n\n🇬🇧 Hello, ' + usr_name + '. I am your Crypto Coins Info Bot! For receive a price of some' \
+                                                                                          ' crypto use a keyboard or send me *a message with a name or a ticker* of a coin/token.'
 
-    context.bot.send_message(usr_chat_id, text_response, parse_mode="Markdown", reply_markup=reply_markup_p1)
+    user_login = update.message.from_user.username
+
+    if login.user_logging(user_login, usr_chat_id):
+        context.bot.send_message(usr_chat_id, text_response, parse_mode="Markdown", reply_markup=rm.reply_markup_p1)
+
+
+def wallet_add(update: Update, context: CallbackContext):
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+
+    try:
+        # args[0] should contain the time for the timer in seconds
+        amount = int(context.args[0])
+        currency = str(context.args[1].upper())
+        print("amount", amount, currency)
+        args_all = context.args
+        print("amount", args_all)
+
+        operation_id = trader.generate_random_id()
+        instrument = "currency"
+        operation = "user add"
+
+        data_query = [user_data.id, currency, amount, operation_id, instrument, operation]
+        print(data_query)
+        trader.wallet_add_money(data_query)
+
+        print(trader.wallet_show_current(user_data.id))
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /walletadd <amount> <currency> (/walletadd 1000 RUB)')
 
 
 # bot's update error handler
 @run_async
 def error(update, context):
-    module_logger.warning('Update caused error "%s"', context.error)
+    bot_utils.module_logger.warning('Update caused error "%s"', context.error)
 
     # TODO send a message for the admin with error from here
 
@@ -40,17 +74,19 @@ def error(update, context):
 # text messages handler for send user keyboard for all users
 @run_async
 def filter_text_input(update, context):
-
-    message_info(update)
-
+    bot_utils.message_info(update)
     usr_msg_text = update.message.text
+    user_data = update.effective_user
+
+    user_response = [user_data.username, user_data.id, usr_msg_text]
+
     usr_chat_id = update.effective_chat.id
 
     # string for response
     text_response = ''
-
+    print("usr_msg_text", usr_msg_text)
     # to work with a text request
-    dict_to_request = text_simple(usr_msg_text)
+    dict_to_request = bot_utils.text_simple(user_response)
 
     # if there is a reply_markup keyboard in a response from function - it's a menu request
     if dict_to_request['menutextresponse']:
@@ -66,22 +102,17 @@ def filter_text_input(update, context):
     if text_response:
         context.bot.send_message(usr_chat_id, text_response,
                                  parse_mode="Markdown", reply_markup=dict_to_request['replymarkupresponse'])
-        module_logger.info("Had send a message to a channel %s", usr_chat_id)
+        bot_utils.module_logger.info("Had send a message to a channel %s", usr_chat_id)
 
     else:
-        module_logger.info("Don't send a message for had receive the message %s", usr_msg_text)
+        bot_utils.module_logger.info("Don't send a message for had receive the message %s", usr_msg_text)
 
 
 # a handler for download the lists of coins from API agregators by job_queue of telegram.ext
+"""
 @run_async
 def download_api_coinslists_handler(context):
-    """
-    the function to download API from the agregators sites to local file
-    :param  bot: a telegram bot main object
-    :type   bot: Bot
-    :param  job: job.context is a name of the site-agregator, which has been send from job_queue.run_repeating... method
-    :type   job: Job
-    """
+
 
     job = context.job
 
@@ -133,3 +164,5 @@ def download_api_coinslists_handler(context):
 
     else:
         module_logger.error('%s not successfully response', job.context)
+
+"""
