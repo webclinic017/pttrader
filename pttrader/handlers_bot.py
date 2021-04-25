@@ -25,7 +25,7 @@ def start(update: Update, context: CallbackContext):
         usr_name += ' ' + update.message.from_user.last_name
     usr_chat_id = update.message.chat_id
 
-    text_response = '🇷🇺 Привет, ' + usr_name
+    text_response = ('🇷🇺 Привет, ' + usr_name +" Команда /help для проссмотра доступных команд")
     text_response_new_user = '🇷🇺 Привет, ' + usr_name + '. Я твой Инфо Крипто Бот! Чтобы узнать цену какой-либо криптовалюты, ' \
                                                           ' используй клавиатуру или отправь мне *сообщение с названием или тикером* монеты/токена.' \
                                                           '\n\n🇬🇧 Hello, ' + usr_name + '. I am your Crypto Coins Info Bot! For receive a price of some' \
@@ -34,7 +34,21 @@ def start(update: Update, context: CallbackContext):
     user_login = update.message.from_user.username
 
     if login.user_logging(user_login, usr_chat_id):
-        context.bot.send_message(usr_chat_id, text_response, parse_mode="Markdown", reply_markup=rm.reply_markup_p1)
+        context.bot.send_message(usr_chat_id, text_response)
+
+def help_user(update, context):
+    usr_chat_id = update.message.chat_id
+    text_response = ("List of commands: \n\n"
+                  " /buy \n"
+                  "sell \n"
+                  "wallet current \n"
+                  "wallet history \n"
+                  "wallet add \n"
+                  "portfolio current \n"
+                  "portfolio history\n"
+                  "check")
+
+    context.bot.send_message(usr_chat_id, text_response)
 
 
 def wallet_add(update: Update, context: CallbackContext):

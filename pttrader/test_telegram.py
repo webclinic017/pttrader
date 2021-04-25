@@ -7,7 +7,7 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
 
 from bot_utils import module_logger
-from handlers_bot import filter_text_input, error, start, wallet_add
+from handlers_bot import filter_text_input, error, start, wallet_add, help_user
 
 def market_manager(user_account_id):
     """
@@ -140,6 +140,9 @@ def main() -> None:
     start_handler = CommandHandler('start', start)
     dispatcher.add_handler(start_handler)
 
+    help_handler = CommandHandler('help', help_user)
+    dispatcher.add_handler(help_handler)
+
     wallet_add_money = CommandHandler('walletadd', wallet_add)
     dispatcher.add_handler(wallet_add_money)
 
@@ -147,7 +150,7 @@ def main() -> None:
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
     dispatcher.add_handler(text_update_handler)
 
-    #
+
     # *** here put the job for the bot ***
     #
     # add tasks to parse APIs from sites-aggregators to local JSON-files, is used time interval, coz
