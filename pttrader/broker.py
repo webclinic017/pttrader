@@ -590,17 +590,19 @@ def wallet_add_money_for_sell(order_data):
 
 def create_orders_query(order_query):
     """
+    this function add new order data to local txt file
+
             order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                        created_at, operation_id, instrument, order_status, commission]
     """
-
+    user_id = order_query[1]
     if Path("files").is_dir():
-
-        orders_query_data = Path("files/orders_query.txt")
+        # TODO add used)id to the end o
+        orders_query_data = Path("files/orders_query" + str(user_id)+".txt")
         if orders_query_data.is_file():
             # file exists
             # add new order to local database
-            with open('files/orders_query.txt', "r") as file:
+            with open("files/orders_query" + str(user_id)+".txt", "r") as file:
                 data = file.read()
             data = json.loads(data)
 
@@ -610,14 +612,12 @@ def create_orders_query(order_query):
                          "operation_id": order_query[8], "instrument": order_query[9], "order_status": order_query[10],
                          "commission": order_query[11], "broker_commission": order_query[12],
                          })
-            with open('files/orders_query.txt', 'w') as file:
+            with open("files/orders_query" + str(user_id)+".txt", "w") as file:
                 file.write(json.dumps(data, default=str))
 
             return True
 
         elif Path("files").is_dir():
-            time.sleep(1)
-
             # add new order to local database
 
             first_data = [{"order_type": order_query[0], "user_id": order_query[1], "ticker": order_query[2],
@@ -627,7 +627,7 @@ def create_orders_query(order_query):
                            "order_status": order_query[10],
                            "commission": order_query[11], "broker_commission": order_query[12],
                            }]
-            with open('files/orders_query.txt', 'w+') as file:
+            with open("files/orders_query" + str(user_id)+".txt", "w+") as file:
                 file.write(json.dumps(first_data, default=str))
 
             return True
@@ -645,7 +645,7 @@ def create_orders_query(order_query):
                        "order_status": order_query[10],
                        "commission": order_query[11], "broker_commission": order_query[12],
                        }]
-        with open('files/orders_query.txt', 'w+') as file:
+        with open("files/orders_query" + str(user_id)+".txt", 'w+') as file:
             file.write(json.dumps(first_data))
 
         return True
@@ -656,7 +656,7 @@ def check_new_orders(account_id):
     Check orders status from orders_query for current user id
 
     """
-    with open('files/orders_query.txt', "r") as file:
+    with open("files/orders_query" + str(account_id)+".txt", "r") as file:
         data = file.read()
     data = json.loads(data)
     new_order_list = data
@@ -680,7 +680,7 @@ def check_new_orders(account_id):
                     order_data.update({"order_done_at": order_done_at})
                     # remove done order from order_query
                     new_order_list.remove(order_data)
-                    with open('files/orders_query.txt', 'w+') as file:
+                    with open("files/orders_query" + str(account_id)+".txt", 'w+') as file:
                         file.write(json.dumps(new_order_list))
                         print("New orders_query changed ")
 
