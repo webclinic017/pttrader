@@ -9,6 +9,7 @@ from pathlib import Path
 import os
 import sys
 
+# TODO delete all useless print functions
 
 def user_logging(user_login, account_id):
     """

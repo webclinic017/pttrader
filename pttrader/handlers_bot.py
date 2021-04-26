@@ -9,6 +9,7 @@ import bot_utils
 import login
 import reply_markups as rm
 import trader
+import broker
 
 
 # from cryptocoinsinfo.reply_markups import *
@@ -25,7 +26,7 @@ def start(update: Update, context: CallbackContext):
         usr_name += ' ' + update.message.from_user.last_name
     usr_chat_id = update.message.chat_id
 
-    text_response = ('🇷🇺 Привет, ' + usr_name +" Команда /help для проссмотра доступных команд")
+    text_response = ('🇷🇺 Привет, ' + usr_name + " Команда /help для проссмотра доступных команд")
     text_response_new_user = '🇷🇺 Привет, ' + usr_name + '. Я твой Инфо Крипто Бот! Чтобы узнать цену какой-либо криптовалюты, ' \
                                                           ' используй клавиатуру или отправь мне *сообщение с названием или тикером* монеты/токена.' \
                                                           '\n\n🇬🇧 Hello, ' + usr_name + '. I am your Crypto Coins Info Bot! For receive a price of some' \
@@ -36,27 +37,110 @@ def start(update: Update, context: CallbackContext):
     if login.user_logging(user_login, usr_chat_id):
         context.bot.send_message(usr_chat_id, text_response)
 
+
 def help_user(update, context):
     usr_chat_id = update.message.chat_id
     text_response = ("List of commands: \n\n"
-                  " /buy \n"
-                  "sell \n"
-                  "wallet current \n"
-                  "wallet history \n"
-                  "wallet add \n"
-                  "portfolio current \n"
-                  "portfolio history\n"
-                  "check")
+                     " /buy \n"
+                     "sell \n"
+                     " /wcur (to show current wallet balance)  \n"
+                     "whist (to show wallet history) \n"
+                     " /wadd  (add money to wallet)\n"
+                     " /brcom (to change default 0.3% broker commission rate"
+                     "portfolio current \n"
+                     "portfolio history\n"
+                     " /check")
 
     context.bot.send_message(usr_chat_id, text_response)
+
+
+# TODO need to show  which orders done
+def check_orders(update: Update, context: CallbackContext):
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+    text_response = (broker.check_new_orders(user_data.id))
+
+    if text_response is not None:
+        print(type(text_response))
+        print(text_response["order_type"])
+        print(text_response["ticker"])
+        context.bot.send_message(usr_chat_id, text_response)
+    else:
+        text_response = ("Orders not done, check again later or no new orders")
+        context.bot.send_message(usr_chat_id, text_response)
+
+
+def buy(update: Update, context: CallbackContext):
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+    # TODO add order_description parameter Why do you buy?. /buy <ticker> <price> <amount> <text>
+    try:
+        # use context args[n] n- number, to get user input data
+        # /buy ticker order_price amount
+        ticker = str(context.args[0].upper())
+        order_price = float(context.args[1])
+        amount = int(context.args[2])
+        args_all = context.args
+        print("all args ", args_all)
+        order_type = "Buy"
+
+        data_query = [order_type, user_data.id, ticker, order_price, amount]
+        print(data_query)
+        if broker.create_order_query(data_query):
+            text_response = ("Order created")
+            context.bot.send_message(usr_chat_id, text_response)
+        elif not broker.create_order_query(data_query):
+            print("check broker")
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /buy <ticker> <price> <amount> (/buy SBER 220.01 10)')
+
+
+def sell(update: Update, context: CallbackContext):
+    pass
+
+
+def wallet_current(update: Update, context: CallbackContext):
+    """
+    this function show current user wallet balance
+    """
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+        text_response = (trader.wallet_show_current(user_data.id))
+        context.bot.send_message(usr_chat_id, text_response)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Something wrong with your wallet. check it ')
+
+
+def wallet_history(update: Update, context: CallbackContext):
+    """
+    this function show current user wallet balance
+    """
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+        text_response = (trader.wallet_show_current(user_data.id))
+        context.bot.send_message(usr_chat_id, text_response)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Something wrong with your wallet. check it ')
 
 
 def wallet_add(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
 
     try:
-        # args[0] should contain the time for the timer in seconds
+        # use context args[n] n- number, to get user input data
         amount = int(context.args[0])
         currency = str(context.args[1].upper())
         print("amount", amount, currency)
@@ -71,10 +155,32 @@ def wallet_add(update: Update, context: CallbackContext):
         print(data_query)
         trader.wallet_add_money(data_query)
 
-        print(trader.wallet_show_current(user_data.id))
+        text_response = (trader.wallet_show_current(user_data.id))
+        context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /walletadd <amount> <currency> (/walletadd 1000 RUB)')
+        update.message.reply_text('Usage: /walletadd <amount> <currency> (/wadd 1000 RUB)')
+
+
+def set_broker_commission(update: Update, context: CallbackContext):
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+        # use context args[n] n- number, to get user input data
+        broker_commission = float(context.args[0])
+        if broker_commission < 0:
+            update.message.reply_text('Sorry you can set commission less than 0')
+            return
+
+        data_query = [user_data.id, broker_commission]
+        if trader.wallet_set_broker_commission(data_query):
+            text_response = 'Commission set to ' + str(broker_commission)
+            context.bot.send_message(usr_chat_id, text_response)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /brcom <rate> (/brcom 0.05)')
 
 
 # bot's update error handler

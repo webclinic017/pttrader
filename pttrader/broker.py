@@ -32,16 +32,17 @@ def create_order_query(order_query):
     amount
     created_at
     :return: order query
+    data_query = [order_type, user_data.id, ticker,order_price,  amount]
     """
+    order_type = order_query[0]
     user_id = order_query[1]
-
+    ticker = order_query[2]
+    order_price = order_query[3]
+    amount = order_query[4]
+    data_query = [order_type, user_id, ticker, order_price, amount]
+    print("broker received data:", data_query)
     current_wallet_data = trader.wallet_show_current(user_id)
     broker_commission = current_wallet_data["broker_commission"]
-
-    order_type = order_query[0]
-
-    print("Enter ticker name:")
-    ticker = trader.get_user_input_data()
 
     if ticker == "USDRUB":
         instrument = "currency"
@@ -62,13 +63,10 @@ def create_order_query(order_query):
 
     if order_type == "Buy" and currency == "RUB":
 
-        print("Enter price for Buy operation:")
-
-        order_price = float(input(">>"))
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
         print("Enter amount in lot's:")
-        amount = int(input(">>"))
+
         commission_raw = order_price * lot_size * amount / 100 * broker_commission
         order_price_total_raw = (order_price * lot_size * amount)
         commission = round(commission_raw, 2)
@@ -84,7 +82,9 @@ def create_order_query(order_query):
         print("You create buy order: ", order_query)
         # need to subtract HOLD  USD from portfolio and hold before order will be done
         # need to subtract money from wallet and hold before order will be done
+        # TODO check messages and sent them through
         if wallet_subtract_money_for_buy(order_query):
+            # TODO change order query for unic user_id file
             create_orders_query(order_query)
             return True
         else:
@@ -93,13 +93,10 @@ def create_order_query(order_query):
 
     elif order_type == "Buy" and currency == "USD":
 
-        print("Enter price for Buy operation:")
-        # TODO change all input() to one function trader.get_user_input_data()
-        order_price = float(input(">>"))
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
         print("Enter amount in lot's:")
-        amount = int(input(">>"))
+
         commission_raw = order_price * lot_size * amount / 100 * broker_commission
         order_price_total_raw = order_price * lot_size * amount
         commission = round(commission_raw, 2)
@@ -147,13 +144,9 @@ def create_order_query(order_query):
 
     elif order_type == "Buy" and instrument == "currency":
 
-        print("Enter price for Buy operation:")
-        order_price = float(input(">>"))
 
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
-        print("Enter amount in lot's:")
-        amount = int(input(">>"))
 
         commission_raw = order_price * lot_size * amount / 100 * broker_commission
         order_price_total_raw = (order_price * lot_size * amount)
@@ -185,13 +178,12 @@ def create_order_query(order_query):
                 return False
             else:
 
-                print("Enter price for Sell operation:")
-                order_price = float(input(">>"))
+
                 lot_size = market.get_ticker_lot_size(order_data)
                 print("1 lot size:", lot_size)
-                print("Enter amount in lot's for sell:")
+
                 # available amount at wallet
-                amount = int(input(">>"))
+
                 currency = market.get_ticker_currency(order_data)
                 commission_raw = order_price * lot_size * amount / 100 * broker_commission
                 order_price_total_raw = order_price * lot_size * amount
@@ -696,7 +688,8 @@ def check_new_orders(account_id):
 
                         # add data about done order to potrfolio_current
                         trader.portfolio_current_add_order(order_data)
-
+                        # TODO for test return order data
+                        return order_data
                     elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                         # add money to user_id wallet
                         wallet_add_money_for_sell(order_data)
@@ -834,7 +827,7 @@ def check_new_orders(account_id):
                 elif not order_status_response[0]:
                     print("Order status = False")
                     order_status = False
-
+                    return
                 else:
                     print("Checking order: ", order_data["operation_id"])
         print("Iteration done")

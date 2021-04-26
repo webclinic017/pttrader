@@ -62,7 +62,7 @@ def get_ticker_price(order_data):
     interval = "1min"
     candles_data = (client.market.market_candles_get(figi=figi, _from=minute_before, to=current_time, interval=interval))
     # need to get last minutw close ticker price
-    print(candles_data)
+
     current_price = candles_data.payload.candles[0].c
 
     return current_price

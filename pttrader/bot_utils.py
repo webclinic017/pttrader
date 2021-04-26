@@ -82,7 +82,7 @@ def text_simple(usr_msg_text):
         menu_text_response = 'page 3'
         reply_markup_response = rm.reply_markup_p3
 
-    elif "buy".upper() == usr_msg_text:
+    elif "buyew".upper() == usr_msg_text:
         import broker
 
         request_query = ["Buy", user_id]

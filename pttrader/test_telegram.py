@@ -1,4 +1,3 @@
-
 import login
 import trader
 import broker
@@ -7,7 +6,9 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
 
 from bot_utils import module_logger
-from handlers_bot import filter_text_input, error, start, wallet_add, help_user
+from handlers_bot import (filter_text_input, error, start, wallet_add, help_user, buy, check_orders, wallet_current,
+                          set_broker_commission)
+
 
 def market_manager(user_account_id):
     """
@@ -70,7 +71,7 @@ def market_manager(user_account_id):
         elif user_input == "wallet history":
             print("User ID: ", str(current_user_id))
             wallet_history_data = trader.wallet_show_history(current_user_id)
-            #show last 10 operations
+            # show last 10 operations
             print(wallet_history_data.tail(10))
             user_input = ""
         # wallet add money
@@ -117,12 +118,11 @@ def market_manager(user_account_id):
             user_input = input(">>")
 
 
-
 def get_my_token() -> str:
-
     with open('data_for_telegram.txt', "r") as file:
         token = file.read()
     return token
+
 
 def main() -> None:
     # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
@@ -143,21 +143,32 @@ def main() -> None:
     help_handler = CommandHandler('help', help_user)
     dispatcher.add_handler(help_handler)
 
-    wallet_add_money = CommandHandler('walletadd', wallet_add)
+    check_order_handler = CommandHandler('check', check_orders)
+    dispatcher.add_handler(check_order_handler)
+
+    buy_handler = CommandHandler('buy', buy)
+    dispatcher.add_handler(buy_handler)
+
+    wallet_show_current = CommandHandler('wcur', wallet_current)
+    dispatcher.add_handler(wallet_show_current)
+
+    wallet_add_money = CommandHandler('wadd', wallet_add)
     dispatcher.add_handler(wallet_add_money)
+
+    change_broker_commission = CommandHandler('brcom', set_broker_commission)
+    dispatcher.add_handler(change_broker_commission)
 
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
     dispatcher.add_handler(text_update_handler)
 
-
     # *** here put the job for the bot ***
     #
     # add tasks to parse APIs from sites-aggregators to local JSON-files, is used time interval, coz
     # APIs (CMC) have pricing plans with limits
-    #job_queue = updater.job_queue
-    #job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 5, context='coinmarketcap')
-    #job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 10, context='cryptocompare')
+    # job_queue = updater.job_queue
+    # job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 5, context='coinmarketcap')
+    # job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 10, context='cryptocompare')
 
     # Start the Bot start_polling() method
     # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
@@ -166,30 +177,5 @@ def main() -> None:
     updater.idle()
 
 
-# from old part
-def user_logging(text_message):
-    # starting program, waiting for  User input and user account_id return
-
-    user_login = text_message
-    print("Please type your login ")
-    input_user_login = input("Login >>")
-    print("Type your Account id: (use only integer numbers)")
-
-    while True:
-        try:
-            input_account_id = int(input("Account id >>"))
-        except ValueError:
-            print("you type not integer number. Example: 123456")
-            continue
-        else:
-            break
-    response_from_login_module = login.user_logging(input_user_login, input_account_id)
-
-    # main cycle
-    market_manager(response_from_login_module)
-
-
 if __name__ == "__main__":
     main()
-
-
