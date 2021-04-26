@@ -24,14 +24,12 @@ def generate_random_id():
 
 def wallet_create_new(account_id):
     """
-    This function creates two .csv files:
+    This function creates two files:
     first for storing wallet operations history
-    and second for current wallet state
+    and second for current wallet balance
+
     """
 
-    # get input data from user
-
-    print("Only RUB supported now as main currency.")
     main_currency = "RUB"
     broker_commission = 0.3
     if main_currency == "RUB":
@@ -52,14 +50,19 @@ def wallet_create_new(account_id):
             print("Something goes wrong, check function", sys._getframe().f_code.co_name)
             return False
     elif main_currency == "USD":
+        # for future dev, to choose main currency
         print("Sorry, only RUB supported now.")
         return False
     else:
+        # for future dev, to choose main currency
         print("Sorry, only RUB supported now. You type:", main_currency)
         return False
 
 
 def wallet_set_broker_commission(data_query):
+    """
+    This function used to set broker's commission rate, which was set by default when wallet has created
+    """
     account_id = data_query[0]
     broker_commission = data_query[1]
     # check if this file exist
@@ -90,8 +93,8 @@ def wallet_set_broker_commission(data_query):
 
 def wallet_add_money(data_query):
     """
-    This function add money to current wallet .csv
-    and write operation to wallet_history .csv
+    This function used to add money to current wallet file
+    and write operation to wallet_history file
     fist operation will add data to wallet_history data
     second operation will calculate data and add to current wallet data
 
@@ -112,12 +115,11 @@ def wallet_add_money(data_query):
         wallet_history_data = wallet_show_history(account_id)
         wallet_current_data = wallet_show_current(account_id)
 
-
-
         # second operation will calculate and write new data to current state of wallet
-
         if currency == "RUB":
             wallet_current_data["RUB"] += amount
+            # do round function for same numbers data in all files
+            wallet_current_data["RUB"] = round(wallet_current_data["RUB"], 2)
             df = wallet_history_data.append({"currency": currency,
                                              "amount": amount,
                                              "date_time": current_time,
@@ -125,15 +127,17 @@ def wallet_add_money(data_query):
                                              "operation_id": operation_id,
                                              "instrument": instrument},
                                             ignore_index=True)
-
+            # write new data to wallet_history
             df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
             # write new data to wallet_current
             with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                 file.write(json.dumps(wallet_current_data))
 
             return True
+
         elif currency == "USD":
             wallet_current_data["USD"] += amount
+            wallet_current_data["USD"] = round(wallet_current_data["USD"], 2)
             df = wallet_history_data.append({"currency": currency,
                                              "amount": amount,
                                              "date_time": current_time,
@@ -141,11 +145,14 @@ def wallet_add_money(data_query):
                                              "operation_id": operation_id,
                                              "instrument": instrument},
                                             ignore_index=True)
-
+            # write new data to wallet_history
             df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
             # write new data to wallet_current
             with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
                 file.write(json.dumps(wallet_current_data))
+
+            return True
+    # may be delete this, because it is reserved if wallet not created at /start
     elif not is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
         if wallet_create_new(account_id):
             wallet_history_data = wallet_show_history(account_id)
@@ -200,7 +207,7 @@ def wallet_add_money(data_query):
 
 def wallet_show_current(account_id):
     """
-    This function show current state of wallet, stored in .csv file
+    This function return current data of user wallet, stored in local file
     """
 
     if is_wallet_current_exist(account_id):
@@ -221,7 +228,7 @@ def wallet_show_current(account_id):
 
 def wallet_show_history(account_id):
     """
-    This function show history of wallet, stored in .csv file
+    This function return user wallet history data , stored in local file
     """
     if is_wallet_history_exist(account_id):
         wallet_data = pd.read_csv("files/wallet_history_" + str(account_id) + ".csv")
@@ -242,7 +249,6 @@ def is_wallet_current_exist(account_id):
     if Path("files").is_dir() and wallet_data.is_file():
         return True
     else:
-        print("Wallet current does not exist")
 
         return False
 
@@ -252,9 +258,7 @@ def is_wallet_history_exist(account_id):
     if Path("files").is_dir() and wallet_data.is_file():
         return True
     else:
-        print("Wallet history does not exist \n"
-              "New wallet history will be created \n"
-              )
+
         return False
 
 
@@ -292,9 +296,7 @@ def is_portfolio_current_exist(account_id):
     if Path("files").is_dir() and portfolio_data.is_file():
         return True
     else:
-        print("Portfolio does not exist \n"
-              "New Portfolio will be created \n"
-              )
+
         return False
 
 
@@ -303,9 +305,7 @@ def is_portfolio_history_exist(account_id):
     if Path("files").is_dir() and portfolio_data.is_file():
         return True
     else:
-        print("Portfolio does not exist \n"
-              "New Portfolio will be created \n"
-              )
+
         return False
 
 
@@ -370,7 +370,6 @@ def portfolio_current_add_order(data):
 
 
 def portfolio_history_add_order(data):
-    print("Add data to portfolio_history\n", data)
 
     """
      data:
@@ -488,7 +487,6 @@ def portfolio_move_from_current(order_data):
         portfolio_cur = portfolio_all_data.set_index("operation_id")
         portfolio_cur_dropped = portfolio_cur.drop(operation_id)
 
-        print("portfolio_cur_dropped\n", portfolio_cur_dropped)
         # save data to portfolio current csv
         portfolio_cur_dropped.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=True)
 

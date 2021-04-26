@@ -19,6 +19,10 @@ import broker
 # send a start message, command handler
 @run_async
 def start(update: Update, context: CallbackContext):
+    """
+    this start function and command. Used for first time run and after clearing chat
+
+    """
     bot_utils.command_info(update)
 
     usr_name = update.message.from_user.first_name
@@ -26,16 +30,23 @@ def start(update: Update, context: CallbackContext):
         usr_name += ' ' + update.message.from_user.last_name
     usr_chat_id = update.message.chat_id
 
-    text_response = ('🇷🇺 Привет, ' + usr_name + " Команда /help для проссмотра доступных команд")
-    text_response_new_user = '🇷🇺 Привет, ' + usr_name + '. Я твой Инфо Крипто Бот! Чтобы узнать цену какой-либо криптовалюты, ' \
-                                                          ' используй клавиатуру или отправь мне *сообщение с названием или тикером* монеты/токена.' \
-                                                          '\n\n🇬🇧 Hello, ' + usr_name + '. I am your Crypto Coins Info Bot! For receive a price of some' \
-                                                                                          ' crypto use a keyboard or send me *a message with a name or a ticker* of a coin/token.'
+    text_response = ('Hi, new user ' + usr_name + "!" + "\n Type /help to see available commands ")
+    text_response_2 = ('Hi, again ' + usr_name + "!" + "\n Type /help to see available commands ")
 
     user_login = update.message.from_user.username
-
+    # check if user exist, if not create new user database
     if login.user_logging(user_login, usr_chat_id):
-        context.bot.send_message(usr_chat_id, text_response)
+        context.bot.send_message(usr_chat_id, text_response_2)
+
+    # if user use bot first time, we need to create all new user files
+    elif not login.user_logging(user_login, usr_chat_id):
+        if login.create_traders_accounts_file():
+            login.add_user_to_traders_account_file(user_login, usr_chat_id)
+            # create new wallet current file and new wallet history file
+            trader.wallet_create_new(usr_chat_id)
+            # create new portfolio current and new portfolio history files
+            trader.portfolio_create_new(usr_chat_id)
+            context.bot.send_message(usr_chat_id, text_response)
 
 
 def help_user(update, context):
@@ -46,7 +57,7 @@ def help_user(update, context):
                      " /wcur (to show current wallet balance)  \n"
                      "whist (to show wallet history) \n"
                      " /wadd  (add money to wallet)\n"
-                     " /brcom (to change default 0.3% broker commission rate"
+                     " /brcom (to change default 0.3% broker's commission rate"
                      "portfolio current \n"
                      "portfolio history\n"
                      " /check")
@@ -95,9 +106,10 @@ def buy(update: Update, context: CallbackContext):
             print("check broker")
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /buy <ticker> <price> <amount> (/buy SBER 220.01 10)')
+        update.message.reply_text("Usage: /buy <ticker> <price> <amount> \n"
+                                  "Example: /buy sber 220.01 10")
 
-
+# TODO sell function
 def sell(update: Update, context: CallbackContext):
     pass
 
@@ -120,14 +132,14 @@ def wallet_current(update: Update, context: CallbackContext):
 
 def wallet_history(update: Update, context: CallbackContext):
     """
-    this function show current user wallet balance
+    this function show current user wallet history
     """
     bot_utils.command_info(update)
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
 
     try:
-        text_response = (trader.wallet_show_current(user_data.id))
+        text_response = (trader.wallet_show_history(user_data.id))
         context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
@@ -159,7 +171,8 @@ def wallet_add(update: Update, context: CallbackContext):
         context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /walletadd <amount> <currency> (/wadd 1000 RUB)')
+        update.message.reply_text('Usage: /wadd <amount> <currency> \n'
+                                  'Example: /wadd 1000 rub')
 
 
 def set_broker_commission(update: Update, context: CallbackContext):
@@ -171,7 +184,7 @@ def set_broker_commission(update: Update, context: CallbackContext):
         # use context args[n] n- number, to get user input data
         broker_commission = float(context.args[0])
         if broker_commission < 0:
-            update.message.reply_text('Sorry you can set commission less than 0')
+            update.message.reply_text("Sorry, you can't set commission less than 0")
             return
 
         data_query = [user_data.id, broker_commission]
@@ -180,7 +193,8 @@ def set_broker_commission(update: Update, context: CallbackContext):
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /brcom <rate> (/brcom 0.05)')
+        update.message.reply_text('Usage: /brcom <rate>\n'
+                                  'Example: /brcom 0.05')
 
 
 # bot's update error handler

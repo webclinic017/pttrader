@@ -656,6 +656,15 @@ def check_new_orders(account_id):
     Check orders status from orders_query for current user id
 
     """
+    # check if not this location
+    orders_query_data = Path("files/orders_query" + str(account_id) + ".txt")
+    if not orders_query_data.is_file():
+    # add new order to local database
+        first_data = []
+        with open("files/orders_query" + str(account_id) + ".txt", "w+") as file:
+            file.write(json.dumps(first_data, default=str))
+
+    # read local user db
     with open("files/orders_query" + str(account_id)+".txt", "r") as file:
         data = file.read()
     data = json.loads(data)
@@ -833,3 +842,4 @@ def check_new_orders(account_id):
         print("Iteration done")
 
     print("There are no Done orders ", len(new_order_list))
+    return

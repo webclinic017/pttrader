@@ -7,7 +7,7 @@ from telegram.ext import CommandHandler, MessageHandler, Filters
 
 from bot_utils import module_logger
 from handlers_bot import (filter_text_input, error, start, wallet_add, help_user, buy, check_orders, wallet_current,
-                          set_broker_commission)
+                          set_broker_commission, wallet_history)
 
 
 def market_manager(user_account_id):
@@ -151,6 +151,9 @@ def main() -> None:
 
     wallet_show_current = CommandHandler('wcur', wallet_current)
     dispatcher.add_handler(wallet_show_current)
+
+    wallet_show_history = CommandHandler('whist', wallet_history)
+    dispatcher.add_handler(wallet_show_history)
 
     wallet_add_money = CommandHandler('wadd', wallet_add)
     dispatcher.add_handler(wallet_add_money)

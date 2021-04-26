@@ -9,42 +9,42 @@ from pathlib import Path
 import os
 import sys
 
-# TODO delete all useless print functions
+
 
 def user_logging(user_login, account_id):
     """
 
-    :return: int account_id
+    :return: bool
     """
 
-    while True:
+    if trader_accounts_file_exist():
+        if get_user_account_id(user_login, account_id)[0]:
+            return True
 
-        if trader_accounts_file_exist():
-            if get_user_account_id(user_login, account_id)[0]:
-                return True
+        elif not get_user_account_id(user_login, account_id)[0]:
+            # need to add new user or user made mistake in input data
 
-            elif not get_user_account_id(user_login, account_id)[0]:
-                # need to add new user or user made mistake in input data
-                print(user_login, "and", account_id, "not found")
-                if add_user_to_traders_account_file(user_login, account_id):
-
-                    return True
-
-
-        # this is new login and account id
-        elif not trader_accounts_file_exist():
-
-            if create_traders_accounts_file():
-
-                account_id = add_user_to_traders_account_file(user_login,account_id)
-                print("New account created!"
-                      "\nRemember your Login:", user_login,
-                      "\nAccount id:", account_id
-                      )
+            if add_user_to_traders_account_file(user_login, account_id):
                 return True
 
 
-def trader_accounts_file_exist():
+    # this is new login and account id
+    elif not trader_accounts_file_exist():
+
+        return False
+
+def check_user_login(user_login, account_id):
+    if trader_accounts_file_exist():
+        if get_user_account_id(user_login, account_id)[0]:
+            return True
+
+    elif not trader_accounts_file_exist():
+
+        return False
+
+
+
+def trader_accounts_file_exist() -> bool:
     account_data = Path("files/traders_accounts.txt")
 
     if account_data.is_file():
@@ -87,7 +87,6 @@ def add_user_to_traders_account_file(user_login, account_id):
 
 
 def get_user_account_id(user_login, account_id):
-
     # check if user already exist
     with open('files/traders_accounts.txt') as file:
         data = file.read()  #
@@ -103,5 +102,3 @@ def get_user_account_id(user_login, account_id):
 
     response = [False, account_id]
     return response
-
-
