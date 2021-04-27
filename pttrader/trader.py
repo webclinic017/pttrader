@@ -13,7 +13,7 @@ def get_user_input_data():
     return user_input
 
 
-def generate_random_id():
+def get_random_id():
     """
     random id generator foo for store same condition at one place
     :return: int()
@@ -167,7 +167,7 @@ def wallet_add_money(data_query):
             operation = "add"
             instrument = "currency"
             # random id generator foo
-            operation_id = generate_random_id()
+            operation_id = get_random_id()
 
             # second operation will calculate and write new data to current state of wallet
 

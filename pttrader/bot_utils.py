@@ -102,7 +102,7 @@ def text_simple(usr_msg_text):
 
         print("Enter amount to add:")
         amount = float(trader.get_user_input_data())
-        operation_id = trader.generate_random_id()
+        operation_id = trader.get_random_id()
         instrument = "currency"
         operation = "user add"
         data_query = [user_id, currency, amount, operation_id, instrument, operation]

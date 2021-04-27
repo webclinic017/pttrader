@@ -9,6 +9,7 @@ import sys
 
 def get_stock_data(order_data):
     """
+
     order_data is input type of instrument: stocks or currency and ticker
     for stock https://api-invest.tinkoff.ru/trading/stocks/get?ticker=
     for currency api is https://api-invest.tinkoff.ru/trading/currency/get?ticker=USDRUB
@@ -26,8 +27,12 @@ def get_stock_data(order_data):
  'status': 'Ok',
  'tracking_id': 'ad909d0e2e8b06cd'}
     """
-    instrument = order_data[0]
-    ticker = order_data[1]
+
+    if type(order_data) is list:
+        ticker = order_data[1]
+    else:
+        ticker = order_data
+
     if ticker == "USDRUB":
         ticker = "USD000UTSTOM"
     client = tinkof_api_auth()
@@ -55,14 +60,13 @@ def get_ticker_price(order_data):
     client = tinkof_api_auth()
 
     now = datetime.datetime.utcnow()
-    created_at = now - datetime.timedelta(minutes=2)
+    created_at = now - datetime.timedelta(minutes=5)
     current_time = now.isoformat("T", timespec="seconds") + "Z"
     minute_before = created_at.isoformat("T", timespec="seconds") + "Z"
 
     interval = "1min"
     candles_data = (client.market.market_candles_get(figi=figi, _from=minute_before, to=current_time, interval=interval))
-    # need to get last minutw close ticker price
-
+    # need to get last minute close ticker price
     current_price = candles_data.payload.candles[0].c
 
     return current_price
@@ -77,11 +81,16 @@ def get_ticker_lot_size(order_data):
     stock_data = get_stock_data(order_data)
 
     lot_size = stock_data.payload.instruments[0].lot
+    if type(order_data) is list:
+        ticker = order_data[1]
+    else:
+        ticker = order_data
+    # TODO this is exception only for tinkoff broker, you can buy 1 lot at current price only
+    # if limit order only lot 1000 available
+    if ticker == "USDRUB":
 
-    if order_data[1] == "USDRUB":
-        print("Lot size at market  is:", lot_size)
         lot_size = 1
-        print("Changed for minimum lot:", lot_size)
+
 
     return lot_size
 
@@ -101,6 +110,7 @@ def get_ticker_min_price_increment(order_data):
 
 def get_ticker_currency(order_data):
     """
+
     This function get data from  api
     return ticker currency
 
