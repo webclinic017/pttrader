@@ -35,7 +35,7 @@ def create_order_query(order_query):
     user_id = order_query[1]
     ticker = order_query[2]
     order_price = order_query[3]
-    amount = order_query[4]
+
 
     current_wallet_data = trader.wallet_show_current(user_id)
     broker_commission = current_wallet_data["broker_commission"]
@@ -46,7 +46,6 @@ def create_order_query(order_query):
         instrument = "stocks"
     order_data = [instrument, ticker]
 
-
     # TODO if market is closed. use last date data
     currency = market.get_ticker_currency(order_data)
 
@@ -56,12 +55,12 @@ def create_order_query(order_query):
 
     current_ticker_price = market.get_ticker_price(order_data)
 
-
     if current_ticker_price == "TickerNotFound":
         response = [False, order_query]
         return response
 
     if order_type == "Buy" and currency == "RUB":
+        amount = order_query[4]
         # get lot size for ticker at market
         lot_size = market.get_ticker_lot_size(order_data)
         # calculate commission for current order
@@ -92,7 +91,7 @@ def create_order_query(order_query):
     # if you want to buy stock in USD currency, first you need USD at your wallet
     # 1) you need to buy USDRUB before buy stock in USD
     elif order_type == "Buy" and currency == "USD":
-
+        amount = order_query[4]
         lot_size = market.get_ticker_lot_size(order_data)
         commission_raw = order_price * lot_size * amount / 100 * broker_commission
         order_price_total_raw = order_price * lot_size * amount
@@ -114,6 +113,7 @@ def create_order_query(order_query):
             wallet_balance_data = trader.wallet_show_current(user_id)
             usd_at_wallet = wallet_balance_data["USD"]
             # check if you have enough money
+
             if usd_at_wallet >= order_price_total:
                 # hold usd from wallet_current for this operation
                 if wallet_subtract_money_for_buy(order_query):
@@ -123,7 +123,9 @@ def create_order_query(order_query):
                     return response
 
             elif usd_at_wallet < order_price_total:
-                order_query = ["You need to buy USDRUB /wcur /buy"]
+                order_query = ["You need to buy USDRUB /wcur /buy" +
+                               " .USD at wallet: " + str(usd_at_wallet) +
+                               " .order price total: " + str(order_price_total)]
                 response = [False, order_query]
                 return response
             # if first order have enough amount do hold operation
@@ -134,13 +136,12 @@ def create_order_query(order_query):
 
         elif portfolio_usdrub_data.empty:
 
-            order_query = ["You need to buy USDRUB /wcur /buy"]
+            order_query = ["elif portfolio_usdrub_data.empty: You need to buy USDRUB /wcur /buy"]
             response = [False, order_query]
             return response
 
     elif order_type == "Buy" and instrument == "currency":
-
-
+        amount = order_query[4]
         lot_size = market.get_ticker_lot_size(order_data)
         print("1 lot size:", lot_size)
 
@@ -148,8 +149,10 @@ def create_order_query(order_query):
         order_price_total_raw = (order_price * lot_size * amount)
         commission = round(commission_raw, 2)
         order_price_total = round(order_price_total_raw, 2)
+
         created_at = get_current_time()
         operation_id = trader.get_random_id()
+
         # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
         order_status = False  # TODO сheck where it used
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
@@ -157,26 +160,26 @@ def create_order_query(order_query):
 
         # need to subtract money from wallet and hold before order will be done
         if wallet_subtract_money_for_buy(order_query):
-            #create_orders_query(order_query)
-            return create_orders_query(order_query)
+            # create_orders_query(order_query)
+            create_orders_query(order_query)
+            response = [True, order_query]
+            return response
         else:
-            print("Order is not ready, please repeat")
-            return
+            order_query = "Order is not ready, please repeat"
+            response = [False, order_query]
+            return response
 
     elif order_type == "Sell" and instrument == "currency":
-
+        amount = order_query[4]
         if current_wallet_data["USD"] > 0.:
 
-            print("Available amount for sell:", current_wallet_data["USD"])
-
             if current_ticker_price == "TickerNotFound":
-                print(ticker, current_ticker_price, "return False")
-                return False
+                order_query = [ticker + str(current_ticker_price) + " return False"]
+                response = [False, order_query]
+                return response
             else:
-
-
+                # check market size  (for limit orders it is 1000 lot , for current price is 1 lot)
                 lot_size = market.get_ticker_lot_size(order_data)
-                print("1 lot size:", lot_size)
 
                 # available amount at wallet
 
@@ -197,12 +200,21 @@ def create_order_query(order_query):
                 # need to hold money  USD currency from wallet
                 if hold_money_for_currency_sell(order_query):
                     create_orders_query(order_query)
-                return True
+                    response = [True, order_query]
+                    return response
+
+                else:
+                    order_query = "Order is not ready, please repeat"
+                    response = [False, order_query]
+                    return response
+        else:
+            order_query = "Order is not ready, please check wallet /wcur"
+            response = [False, order_query]
+            return response
 
     elif order_type == "Sell" and instrument == "stocks":
 
-        print("Enter operation id to sell ")
-        buy_operation_id = int(input(">>"))
+        buy_operation_id = order_query[4]
 
         portfolio_all_data = trader.portfolio_show_current(user_id)
         portfolio_data = (portfolio_all_data[portfolio_all_data["operation_id"] == buy_operation_id])
@@ -210,25 +222,23 @@ def create_order_query(order_query):
             # check if order have one operation_id for buy and sell order early
 
             if len(portfolio_data) == 2 and len(portfolio_data["order_type"].unique()) == 2:
-                print("Order: ", buy_operation_id, "closed completely")
-                return False
+                order_query = ("Order: " + str(buy_operation_id) + "closed completely")
+                response = [False, order_query]
+                return response
             else:
                 portfolio_order_data = portfolio_data[portfolio_data["operation_id"] == buy_operation_id]
                 current_ticker_price = market.get_ticker_price(order_data)
-                print("Current price:", current_ticker_price)
+
                 if current_ticker_price == "TickerNotFound":
-                    print(ticker, current_ticker_price, "return False")
-                    return False
+                    order_query = [ticker + str(current_ticker_price) + " return False"]
+                    response = [False, order_query]
+                    return response
                 else:
-                    print("price increment is:", market.get_ticker_min_price_increment(order_data))
-                    print("Enter price for Sell operation:")
-                    order_price = float(input(">>"))
+
                     lot_size = market.get_ticker_lot_size(order_data)
-                    print("1 lot size:", lot_size)
-                    print("Enter amount in lot's:")
 
                     amount = int(portfolio_order_data["amount"].values)
-                    print("amount:", amount)
+
                     currency = market.get_ticker_currency(order_data)
                     commission_raw = order_price * lot_size * amount / 100 * broker_commission
                     order_price_total_raw = order_price * lot_size * amount
@@ -242,17 +252,20 @@ def create_order_query(order_query):
                     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                                    created_at, operation_id, instrument, order_status, commission,
                                    broker_commission]
-                    print("You create sell order: ", order_query)
+
                     # need to add money to wallet after order will be done
                     # check if trader portfolio have data for sell
                     create_orders_query(order_query)
-                    return True
+                    response = [True, order_query]
+                    return response
         elif portfolio_data.empty:
-            print(buy_operation_id, "Order not found")
-            return False
+            order_query = (str(buy_operation_id) + "Order not found")
+            response = [False, order_query]
+            return response
     else:
-        print("Order is not ready, please repeat")
-        return False
+        order_query = "Order is not ready, please repeat"
+        response = [False, order_query]
+        return response
 
 
 def hold_money_for_currency_sell(order_data):
@@ -588,11 +601,11 @@ def create_orders_query(order_query):
     user_id = order_query[1]
     if Path("files").is_dir():
         # TODO add used)id to the end o
-        orders_query_data = Path("files/orders_query" + str(user_id)+".txt")
+        orders_query_data = Path("files/orders_query" + str(user_id) + ".txt")
         if orders_query_data.is_file():
             # file exists
             # add new order to local database
-            with open("files/orders_query" + str(user_id)+".txt", "r") as file:
+            with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
                 data = file.read()
             data = json.loads(data)
 
@@ -602,7 +615,7 @@ def create_orders_query(order_query):
                          "operation_id": order_query[8], "instrument": order_query[9], "order_status": order_query[10],
                          "commission": order_query[11], "broker_commission": order_query[12],
                          })
-            with open("files/orders_query" + str(user_id)+".txt", "w") as file:
+            with open("files/orders_query" + str(user_id) + ".txt", "w") as file:
                 file.write(json.dumps(data, default=str))
 
             return True
@@ -617,7 +630,7 @@ def create_orders_query(order_query):
                            "order_status": order_query[10],
                            "commission": order_query[11], "broker_commission": order_query[12],
                            }]
-            with open("files/orders_query" + str(user_id)+".txt", "w+") as file:
+            with open("files/orders_query" + str(user_id) + ".txt", "w+") as file:
                 file.write(json.dumps(first_data, default=str))
 
             return True
@@ -635,7 +648,7 @@ def create_orders_query(order_query):
                        "order_status": order_query[10],
                        "commission": order_query[11], "broker_commission": order_query[12],
                        }]
-        with open("files/orders_query" + str(user_id)+".txt", 'w+') as file:
+        with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
             file.write(json.dumps(first_data))
 
         return True
@@ -649,15 +662,16 @@ def check_new_orders(account_id):
     # check if not this location
     orders_query_data = Path("files/orders_query" + str(account_id) + ".txt")
     if not orders_query_data.is_file():
-    # add new order to local database
+        # add new order to local database
         first_data = []
         with open("files/orders_query" + str(account_id) + ".txt", "w+") as file:
             file.write(json.dumps(first_data, default=str))
 
     # read local user db
-    with open("files/orders_query" + str(account_id)+".txt", "r") as file:
+    with open("files/orders_query" + str(account_id) + ".txt", "r") as file:
         data = file.read()
     new_order_list = json.loads(data)
+    not_done_orders = []
     # check all orders in order query
     for order_data in new_order_list:
 
@@ -672,20 +686,25 @@ def check_new_orders(account_id):
             order_data.update({"order_status": True})
             # remove done order from order_query
             new_order_list.remove(order_data)
-
+            with open("files/orders_query" + str(account_id) + ".txt", 'w+') as file:
+                file.write(json.dumps(new_order_list))
             if order_data['order_type'] == "Buy" and order_data['instrument'] == "stocks":
 
                 # add data about done order to potrfolio_current
                 trader.portfolio_current_add_order(order_data)
-                # TODO for test return order data
-                return order_data
+                response = [True, order_data]
+                return response
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
+                # TODO make calcs for USD stocs and current USDRUB in portfolio (need to update data)
                 # add money to user_id wallet
                 wallet_add_money_for_sell(order_data)
                 # add data about Sell order to portfolio history file
                 trader.portfolio_history_add_order(order_data)
                 # delete data about orders from portfolio current and write to portfolio history
                 trader.portfolio_move_from_current(order_data)
+
+                response = [True, order_data]
+                return response
 
             elif order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
                 data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"],
@@ -700,7 +719,7 @@ def check_new_orders(account_id):
                 if not portfolio_data.empty:
 
                     # get data about USDRUB from current portfolio
-                    print("portfolio data:\n", portfolio_data)
+
                     # calculate average price for new order: sum of orders order_price_total / sum of amounts
                     order_total_price = order_data["order_price_total"]
                     order_amount = order_data["amount"]
@@ -717,7 +736,7 @@ def check_new_orders(account_id):
 
                     # next step: delete from portfolio old data and save new
                     get_index_number = portfolio_data["commission"].index.values[0]
-                    print("index num:", get_index_number)
+
                     without_dropped_data = portfolio_all_data.drop([get_index_number])
 
                     df = without_dropped_data.append({"order_type": order_data["order_type"],
@@ -736,15 +755,18 @@ def check_new_orders(account_id):
                     # save to csv
                     df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
-
+                    response = [True, order_data]
+                    return response
 
                 # there is no orders in current portfolio add one
                 elif portfolio_data.empty:
 
                     trader.portfolio_current_add_order(order_data)
+                    response = [True, order_data]
+                    return response
 
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
-                print("You sell USDRUB , need to add money to wallet RUB ")
+
                 # add data to wallet history and add money to user_id wallet
                 wallet_add_money_for_sell(order_data)
 
@@ -758,9 +780,7 @@ def check_new_orders(account_id):
                     # if 0 $ amount at current wallet
                     # order_amount == portfolio_amount
                     current_wallet_data = trader.wallet_show_current(account_id)
-
                     # get data about USDRUB from current portfolio
-                    print("portfolio data:\n", portfolio_data)
                     # calculate average price for new order: sum of orders order_price_total / sum of amounts
                     order_total_price = order_data["order_price_total"]
                     order_amount = order_data["amount"]
@@ -770,14 +790,16 @@ def check_new_orders(account_id):
                     portfolio_commission = portfolio_data["commission"].values[0]
                     if current_wallet_data["USD"] == 0 and order_amount == portfolio_amount:
 
-                        #this is last order, remove from portfolio
+                        # this is last order, remove from portfolio
                         get_index_number = portfolio_data["commission"].index.values[0]
-                        print("index num:", get_index_number)
+
                         without_dropped_data = portfolio_all_data.drop([get_index_number])
                         # save to csv
                         without_dropped_data.to_csv("files/portfolio_current_" + str(account_id) + ".csv",
                                                     index=False)
-
+                        # order done sent response to handlers
+                        response = [True, order_data]
+                        return response
 
                     else:
 
@@ -791,7 +813,7 @@ def check_new_orders(account_id):
 
                         # next step: delete from portfolio old data and save new
                         get_index_number = portfolio_data["commission"].index.values[0]
-                        print("index num:", get_index_number)
+
                         without_dropped_data = portfolio_all_data.drop([get_index_number])
 
                         df = without_dropped_data.append({"order_type": order_data["order_type"],
@@ -810,18 +832,20 @@ def check_new_orders(account_id):
                         # save to csv
                         df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
+                        # order done sent response to handlers
+                        response = [True, order_data]
+                        return response
+
                 # delete data about order if amount in order = amount from portfolio current
 
 
         elif not order_status_response[0]:
-
-            print("Order:",order_data["operation_id"],"not done")
-
-
+            not_done_orders.append(order_data["operation_id"])
+            print("Order:", order_data["operation_id"], "not done")
 
     # save changes in order query to file
-    with open("files/orders_query" + str(account_id) + ".txt", 'w+') as file:
-        file.write(json.dumps(new_order_list))
 
+    order_data = {" Not done orders: ": not_done_orders}
     print("Not done orders in query: " + str(len(new_order_list)))
-
+    response = [False, order_data]
+    return response

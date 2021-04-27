@@ -7,6 +7,14 @@ import datetime
 import sys
 
 
+def tinkof_api_auth():
+    # authorisation
+    with open('data_for_tinkoff_api.txt', "r") as file:
+        token = file.read()
+    client = openapi.api_client(token)
+
+    return client
+
 def get_stock_data(order_data):
     """
 
@@ -319,9 +327,9 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     interval = "1min"  # valid intervals ("1min","2min","3min","5min","10min","15min",
     # "30min","hour","2hour","4hour","day","week","month")
 
-    print("created_at", created_at)
-    print("now", now)
-    # print("now-created_at", now - created_at)
+    # print("created_at", created_at)
+    # print("now", now)
+    #
 
     # this is always true!
     if created_at != now:
@@ -499,10 +507,4 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
         return order_status
 
 
-def tinkof_api_auth():
-    # authorisation
-    with open('data_for_tinkoff_api.txt', "r") as file:
-        token = file.read()
-    client = openapi.api_client(token)
 
-    return client

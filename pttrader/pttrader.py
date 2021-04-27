@@ -6,8 +6,19 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
 
 from bot_utils import module_logger
-from handlers_bot import (filter_text_input, error, start, wallet_add, help_user, buy, check_orders, wallet_current,
-                          set_broker_commission, wallet_history, ticker_data)
+from handlers_bot import (filter_text_input,
+                          error,
+                          start,
+                          wallet_add,
+                          help_user,
+                          buy,
+                          sell,
+                          check_orders,
+                          wallet_current,
+                          set_broker_commission,
+                          wallet_history,
+                          ticker_data
+                          )
 
 
 def get_my_token() -> str:
@@ -43,6 +54,9 @@ def main() -> None:
 
     buy_handler = CommandHandler('buy', buy)
     dispatcher.add_handler(buy_handler)
+
+    sell_handler = CommandHandler('sell', sell)
+    dispatcher.add_handler(sell_handler)
 
     wallet_show_current = CommandHandler('wcur', wallet_current)
     dispatcher.add_handler(wallet_show_current)
