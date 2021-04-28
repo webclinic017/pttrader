@@ -14,6 +14,7 @@ import market
 def start(update: Update, context: CallbackContext):
     """
     this start function and command. Used for first time run and after clearing chat by user
+    if need you can add custom command /login <user_login> <user_id> for multiple accounts creation
     """
     bot_utils.command_info(update)
 
@@ -24,7 +25,7 @@ def start(update: Update, context: CallbackContext):
 
     text_response = ('Hi, new user ' + usr_name + "!" +
                      "\n Type /help to see all available commands "
-                     "\n * first add money to your current wallet /wadd "
+                     "\n * first add money /wadd to your current wallet /wcur  "
                      "\n * use /ticker to check data about stock "
                      "\n * use /buy to create buy order"
                      "\n * use /check to check order status")
@@ -56,7 +57,7 @@ def help_user(update, context):
     usr_chat_id = update.message.chat_id
     text_response = ("List of commands: \n\n"
                      " /buy \n"
-                     "sell \n"
+                     " /sell \n"
                      " /check \n"
                      " /ticker (to get info about ticker) \n"
                      " /wcur (to show current wallet balance) \n"
@@ -84,13 +85,12 @@ def check_orders(update: Update, context: CallbackContext):
 
             context.bot.send_message(usr_chat_id, text_response)
         elif not order_status_response[0]:
-            text_response =  str(order_status_response[1])
+            text_response = str(order_status_response[1])
 
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /buy <ticker> <price> <amount>"
-                                  "\n Example: /buy sber 220.01 10")
+        update.message.reply_text("Usage: /check")
 
 
 def ticker_data(update: Update, context: CallbackContext):
@@ -124,12 +124,12 @@ def ticker_data(update: Update, context: CallbackContext):
 
 def buy(update: Update, context: CallbackContext):
     """
-    user message: /buy <ticker> <price> <amount>
-    Example: /buy sber 220.01 10
+    user message: /buy <ticker> <price> <amount> <order_description>
+    Example: /buy sber 220.01 10 reason to buy
 
     function creates order list with parameters:
     [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+                       created_at, operation_id, instrument, order_status, commission, broker_commission, order_description]
     """
     bot_utils.command_info(update)
     order_type = "Buy"
@@ -142,32 +142,35 @@ def buy(update: Update, context: CallbackContext):
         ticker = str(context.args[0].upper())
         order_price = float(context.args[1])
         amount = int(context.args[2])
-        # make list to create order query
-        data_query = [order_type, user_data.id, ticker, order_price, amount]
+        order_description = ""
+        for arg in context.args[3:]:
+            order_description += arg + " "
 
+        # make list to create order query
+        data_query = [order_type, user_data.id, ticker, order_price, amount, order_description]
+        print(data_query)
         response_data = broker.create_order_query(data_query)
         # respond data is nested list [bool,[list]]
         print('response data in buy handler', response_data)
         if response_data[0]:
             text_response = ("Order, created " + str(response_data[1]))
             context.bot.send_message(usr_chat_id, text_response)
-        elif not response_data[0] and len(response_data[1]) > 2:
-            total_money = response_data[1][6]
-            currency = response_data[1][5]
-            text_response = ("Order not created, check wallet balance /wcur " +
-                             "\n Order total: " + str(total_money) + currency)
-            context.bot.send_message(usr_chat_id, text_response)
+
         elif not response_data[0]:
             text_response = response_data[1]
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /buy <ticker> <price> <amount>"
-                                  "\n Example: /buy sber 220.01 10")
+        update.message.reply_text("Usage: /buy <ticker> <price> <amount> <order_description>"
+                                  "\nExample: /buy sber 220.01 10 I buy because of COVID 2019 and"
+                                  " think that price will grow up to 300")
 
 
 # TODO sell function
 def sell(update: Update, context: CallbackContext):
+    """
+    same as for buy
+    """
     bot_utils.command_info(update)
     order_type = "Sell"
     user_data = update.effective_user
@@ -180,16 +183,23 @@ def sell(update: Update, context: CallbackContext):
         order_price = float(context.args[1])
         if ticker == "USDRUB":
             amount = float(context.args[2])
-            data_query = [order_type, user_data.id, ticker, order_price, amount]
+            order_description = ""
+            for arg in context.args[3:]:
+                order_description += arg + " "
+
+            data_query = [order_type, user_data.id, ticker, order_price, amount, order_description]
+            print(data_query)
             response_data = broker.create_order_query(data_query)
         else:
             operation_id = int(context.args[2])
+            order_description = ""
+            for arg in context.args[3:]:
+                order_description += arg + " "
             # make list to create order query
-            data_query = [order_type, user_data.id, ticker, order_price, operation_id]
+            data_query = [order_type, user_data.id, ticker, order_price, operation_id, order_description]
             print(data_query)
             response_data = broker.create_order_query(data_query)
-             # respond data is nested list [bool,[list]]
-
+            # respond data is nested list [bool,[list]]
         if response_data[0]:
             text_response = ("Order, created " + str(response_data[1]))
             context.bot.send_message(usr_chat_id, text_response)
@@ -204,8 +214,9 @@ def sell(update: Update, context: CallbackContext):
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /sell <ticker> <price> <operation_id>"
-                                  "\n Example: /sell sber 320.01 123456")
+        update.message.reply_text("Usage: /sell <ticker> <price> <operation_id> <order_description>"
+                                  "\n Example: /sell sber 320.01 123456 reason to sell"
+                                  "\n For currency /sell usdrub <price> <amount> <order_description> ")
 
 
 def wallet_current(update: Update, context: CallbackContext):

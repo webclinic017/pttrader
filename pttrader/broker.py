@@ -25,17 +25,18 @@ def get_current_time():
 def create_order_query(order_query):
     """
     Get input parameters from trader:
-    data_query = [order_type, user_data.id, ticker,order_price,  amount]
+    data_query = [order_type, user_data.id, ticker,order_price,  amount, order_description]
 
     :return: list [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+                       created_at, operation_id, instrument, order_status, commission, broker_commission,
+                        order_description]
 
     """
     order_type = order_query[0]
     user_id = order_query[1]
     ticker = order_query[2]
     order_price = order_query[3]
-
+    order_description = order_query[5]
 
     current_wallet_data = trader.wallet_show_current(user_id)
     broker_commission = current_wallet_data["broker_commission"]
@@ -75,16 +76,24 @@ def create_order_query(order_query):
         # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
         order_status = False
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+                       created_at, operation_id, instrument, order_status, commission, broker_commission,
+                       order_description
+                       ]
+        wallet_balance_data = trader.wallet_show_current(user_id)
+        rub_at_wallet = wallet_balance_data["RUB"]
         # subtract money from wallet
-        if wallet_subtract_money_for_buy(order_query):
+        if rub_at_wallet >= order_price_total:
+            wallet_subtract_money_for_buy(order_query)
             # add order data to  order query
             create_orders_query(order_query)
             # response goes to handlers_bot module
             response = [True, order_query]
             return response
-        else:
+        elif rub_at_wallet < order_price_total:
 
+            order_query = "You need more RUB /wcur "   \
+                           + "\nRUB at wallet: " + str(rub_at_wallet) \
+                           + "\norder price total: " + str(order_price_total)
             response = [False, order_query]
             return response
     # TODO refactor for other order types
@@ -102,7 +111,9 @@ def create_order_query(order_query):
         # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
         order_status = False
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+                       created_at, operation_id, instrument, order_status, commission, broker_commission,
+                       order_description
+                       ]
 
         # check if in portfolio current has data about USDRUB
         portfolio_all_data = trader.portfolio_show_current(user_id)
@@ -123,9 +134,9 @@ def create_order_query(order_query):
                     return response
 
             elif usd_at_wallet < order_price_total:
-                order_query = ["You need to buy USDRUB /wcur /buy" +
-                               " .USD at wallet: " + str(usd_at_wallet) +
-                               " .order price total: " + str(order_price_total)]
+                order_query = ["You need to buy USDRUB /wcur /buy" + "*" \
+                               + "\nUSD at wallet: *" + str(usd_at_wallet) \
+                               + "\norder price total: *" + str(order_price_total)]
                 response = [False, order_query]
                 return response
             # if first order have enough amount do hold operation
@@ -156,7 +167,9 @@ def create_order_query(order_query):
         # TODO need to describe order_status for different situation: hold, done, query, wait  ... etc.
         order_status = False  # TODO сheck where it used
         order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                       created_at, operation_id, instrument, order_status, commission, broker_commission]
+                       created_at, operation_id, instrument, order_status, commission, broker_commission,
+                       order_description
+                       ]
 
         # need to subtract money from wallet and hold before order will be done
         if wallet_subtract_money_for_buy(order_query):
@@ -165,7 +178,7 @@ def create_order_query(order_query):
             response = [True, order_query]
             return response
         else:
-            order_query = "Order is not ready, please repeat"
+
             response = [False, order_query]
             return response
 
@@ -195,7 +208,8 @@ def create_order_query(order_query):
                 order_status = False
                 order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                                created_at, operation_id, instrument, order_status, commission,
-                               broker_commission]
+                               broker_commission, order_description
+                               ]
                 print("You create sell order: ", order_query)
                 # need to hold money  USD currency from wallet
                 if hold_money_for_currency_sell(order_query):
@@ -251,7 +265,8 @@ def create_order_query(order_query):
                     order_status = False
                     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
                                    created_at, operation_id, instrument, order_status, commission,
-                                   broker_commission]
+                                   broker_commission, order_description
+                                   ]
 
                     # need to add money to wallet after order will be done
                     # check if trader portfolio have data for sell
@@ -282,6 +297,7 @@ def hold_money_for_currency_sell(order_data):
     order_status = order_data[10]
     commission = order_data[11]
     broker_commission = order_data[12]
+    order_description = order_data[13]
 
     print("Money to hold for sell from wallet:", amount, currency)
     wallet_current_data = trader.wallet_show_current(account_id)
@@ -330,6 +346,7 @@ def wallet_subtract_money_for_buy(order_data):
     order_status = order_data[10]
     commission = order_data[11]
     broker_commission = order_data[12]
+    order_description = order_data[13]
 
     wallet_history_data = trader.wallet_show_history(account_id)
 
@@ -462,8 +479,9 @@ def wallet_add_money_for_sell(order_data):
     commission = order_data["commission"]
     broker_commission = order_data["broker_commission"]
     order_done_at = order_data["order_done_at"]
+    order_description = order_data["order_description"]
     order_query = [order_type, user_id, ticker, order_price, amount, currency, order_price_total,
-                   created_at, operation_id]
+                   created_at, operation_id, order_description]
     print("Money to add:", order_price_total)
     print(order_query)
 
@@ -614,6 +632,7 @@ def create_orders_query(order_query):
                          "order_price_total": order_query[6], "created_at": order_query[7],
                          "operation_id": order_query[8], "instrument": order_query[9], "order_status": order_query[10],
                          "commission": order_query[11], "broker_commission": order_query[12],
+                         "order_description": order_query[13],
                          })
             with open("files/orders_query" + str(user_id) + ".txt", "w") as file:
                 file.write(json.dumps(data, default=str))
@@ -629,6 +648,7 @@ def create_orders_query(order_query):
                            "operation_id": order_query[8], "instrument": order_query[9],
                            "order_status": order_query[10],
                            "commission": order_query[11], "broker_commission": order_query[12],
+                           "order_description": order_query[13],
                            }]
             with open("files/orders_query" + str(user_id) + ".txt", "w+") as file:
                 file.write(json.dumps(first_data, default=str))
@@ -647,6 +667,7 @@ def create_orders_query(order_query):
                        "operation_id": order_query[8], "instrument": order_query[9],
                        "order_status": order_query[10],
                        "commission": order_query[11], "broker_commission": order_query[12],
+                       "order_description": order_query[13],
                        }]
         with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
             file.write(json.dumps(first_data))

@@ -272,6 +272,7 @@ def portfolio_create_new(account_id):
 
     portfolio_current_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount",
                                                  "currency", "order_price_total", "commission", "instrument",
+                                                 "order_description",
                                                  "order_created_at", "order_done_at",
                                                  ])
 
@@ -279,6 +280,7 @@ def portfolio_create_new(account_id):
 
     portfolio_history_df = pd.DataFrame(columns=["operation_id", "order_type", "ticker", "order_price", "amount",
                                                  "currency", "order_price_total", "commission", "instrument",
+                                                 "order_description",
                                                  "order_created_at", "order_done_at",
                                                  ])
 
@@ -296,7 +298,6 @@ def is_portfolio_current_exist(account_id):
     if Path("files").is_dir() and portfolio_data.is_file():
         return True
     else:
-
         return False
 
 
@@ -305,7 +306,6 @@ def is_portfolio_history_exist(account_id):
     if Path("files").is_dir() and portfolio_data.is_file():
         return True
     else:
-
         return False
 
 
@@ -332,6 +332,7 @@ def portfolio_current_add_order(data):
                                             "operation_id": data["operation_id"],
                                             "instrument": data["instrument"],
                                             "order_done_at": data["order_done_at"],
+                                            "order_description": data["order_description"],
                                             },
                                            ignore_index=True)
 
@@ -352,6 +353,7 @@ def portfolio_current_add_order(data):
                                                 "operation_id": data["operation_id"],
                                                 "instrument": data["instrument"],
                                                 "order_done_at": data["order_done_at"],
+                                                "order_description": data["order_description"],
                                                 },
                                                ignore_index=True)
 
@@ -393,6 +395,7 @@ def portfolio_history_add_order(data):
                                             "operation_id": data["operation_id"],
                                             "instrument": data["instrument"],
                                             "order_done_at": data["order_done_at"],
+                                            "order_description": data["order_description"],
                                             },
                                            ignore_index=True)
 
@@ -413,6 +416,7 @@ def portfolio_history_add_order(data):
                                                 "operation_id": data["operation_id"],
                                                 "instrument": data["instrument"],
                                                 "order_done_at": data["order_done_at"],
+                                                "order_description": data["order_description"],
                                                 },
                                                ignore_index=True)
 
