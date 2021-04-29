@@ -1,7 +1,4 @@
 
-import trader
-import broker
-
 from telegram.ext import Updater
 from telegram.ext import CommandHandler, MessageHandler, Filters
 
@@ -17,18 +14,20 @@ from handlers_bot import (filter_text_input,
                           wallet_current,
                           set_broker_commission,
                           wallet_history,
-                          ticker_data
+                          ticker_data,
+                          show_portfolio_current
+
                           )
 
 
 def get_my_token() -> str:
+
     with open('data_for_telegram.txt', "r") as file:
         token = file.read()
     return token
 
 
 def main() -> None:
-    # https://github.com/lytves/crypto-coins-info-bot-v2/blob/957293e1fca6086d00b0b2715f9ed8304aaff2cd/cryptocoinsinfo/utils.py#L41
 
     module_logger.info("Start the @pttraderbot bot!")
 
@@ -70,17 +69,12 @@ def main() -> None:
     change_broker_commission = CommandHandler('brcom', set_broker_commission)
     dispatcher.add_handler(change_broker_commission)
 
+    portfolio_current = CommandHandler('pcur', show_portfolio_current)
+    dispatcher.add_handler(portfolio_current)
+
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
     dispatcher.add_handler(text_update_handler)
-
-    # *** here put the job for the bot ***
-    #
-    # add tasks to parse APIs from sites-aggregators to local JSON-files, is used time interval, coz
-    # APIs (CMC) have pricing plans with limits
-    # job_queue = updater.job_queue
-    # job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 5, context='coinmarketcap')
-    # job_queue.run_repeating(download_api_coinslists_handler, TIME_INTERVAL, 10, context='cryptocompare')
 
     # Start the Bot start_polling() method
     # Run the bot until the user presses Ctrl-C or the process receives SIGINT,

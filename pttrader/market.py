@@ -6,6 +6,7 @@ from openapi_client import openapi
 import datetime
 import sys
 
+# TODO get market data when market closed
 
 def tinkof_api_auth():
     # authorisation

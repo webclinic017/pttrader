@@ -693,6 +693,7 @@ def check_new_orders(account_id):
         data = file.read()
     new_order_list = json.loads(data)
     not_done_orders = []
+    done_orders = []
     # check all orders in order query
     for order_data in new_order_list:
 
@@ -713,8 +714,8 @@ def check_new_orders(account_id):
 
                 # add data about done order to potrfolio_current
                 trader.portfolio_current_add_order(order_data)
-                response = [True, order_data]
-                return response
+                done_orders.append(order_data["operation_id"])
+
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                 # TODO make calcs for USD stocs and current USDRUB in portfolio (need to update data)
                 # add money to user_id wallet
@@ -724,8 +725,7 @@ def check_new_orders(account_id):
                 # delete data about orders from portfolio current and write to portfolio history
                 trader.portfolio_move_from_current(order_data)
 
-                response = [True, order_data]
-                return response
+                done_orders.append(order_data["operation_id"])
 
             elif order_data['order_type'] == "Buy" and order_data['instrument'] == "currency":
                 data_query = [order_data["user_id"], "USD", order_data["amount"], order_data["operation_id"],
@@ -776,15 +776,13 @@ def check_new_orders(account_id):
                     # save to csv
                     df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
-                    response = [True, order_data]
-                    return response
+                    done_orders.append(order_data["operation_id"])
 
                 # there is no orders in current portfolio add one
                 elif portfolio_data.empty:
 
                     trader.portfolio_current_add_order(order_data)
-                    response = [True, order_data]
-                    return response
+                    done_orders.append(order_data["operation_id"])
 
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
 
@@ -819,8 +817,7 @@ def check_new_orders(account_id):
                         without_dropped_data.to_csv("files/portfolio_current_" + str(account_id) + ".csv",
                                                     index=False)
                         # order done sent response to handlers
-                        response = [True, order_data]
-                        return response
+                        done_orders.append(order_data["operation_id"])
 
                     else:
 
@@ -854,8 +851,9 @@ def check_new_orders(account_id):
                         df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
                         # order done sent response to handlers
-                        response = [True, order_data]
-                        return response
+
+                        done_orders.append(order_data["operation_id"])
+
 
                 # delete data about order if amount in order = amount from portfolio current
 
@@ -866,7 +864,7 @@ def check_new_orders(account_id):
 
     # save changes in order query to file
 
-    order_data = {" Not done orders: ": not_done_orders}
+    order_data = {" Not done orders: ": not_done_orders, " Done orders": done_orders}
     print("Not done orders in query: " + str(len(new_order_list)))
     response = [False, order_data]
     return response

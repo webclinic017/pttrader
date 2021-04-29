@@ -7,6 +7,7 @@ import login
 import trader
 import broker
 import market
+import json
 
 
 # send a start message, command handler
@@ -63,15 +64,14 @@ def help_user(update, context):
                      " /wcur (to show current wallet balance) \n"
                      "whist (to show wallet history) \n"
                      " /wadd  (add money to wallet) \n"
-                     " /brcom (to change default 0.3% broker's commission rate"
-                     "portfolio current \n"
+                     " /brcom (to change default 0.3% broker's commission rate)"
+                     " /pcur (to show current portfolio) \n"
                      "portfolio history \n"
                      )
 
     context.bot.send_message(usr_chat_id, text_response)
 
 
-# TODO need to show  which orders done
 def check_orders(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
@@ -79,7 +79,7 @@ def check_orders(update: Update, context: CallbackContext):
     try:
         order_status_response = (broker.check_new_orders(user_data.id))
         print('response data in check orders handler', order_status_response)
-
+        # can delete first element in future
         if order_status_response[0]:
             text_response = ("Order done: " + str(order_status_response[1]))
 
@@ -166,7 +166,6 @@ def buy(update: Update, context: CallbackContext):
                                   " think that price will grow up to 300")
 
 
-# TODO sell function
 def sell(update: Update, context: CallbackContext):
     """
     same as for buy
@@ -261,8 +260,6 @@ def wallet_add(update: Update, context: CallbackContext):
         amount = int(context.args[0])
         currency = str(context.args[1].upper())
 
-        args_all = context.args
-
         operation_id = trader.get_random_id()
         instrument = "currency"
         operation = "user add"
@@ -301,6 +298,33 @@ def set_broker_commission(update: Update, context: CallbackContext):
                                   '\n Example: /brcom 0.05')
 
 
+def show_portfolio_current(update: Update, context: CallbackContext):
+    """
+    this function show current user portfolio
+    """
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+        portfolio_data = (trader.portfolio_show_current(user_data.id))
+
+        portfolio_orders = portfolio_data.to_json(orient="split", index=False).encode('utf8')
+
+        data = json.loads(portfolio_orders)
+
+        data_response = ""
+        #parsed = json.dumps(data, indent=2).encode('utf8')
+        for order in data['data']:
+
+            data_response += str(order)+"\n\n\n"
+        text_response = data_response
+        context.bot.send_message(usr_chat_id, text_response)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Something wrong type to @mikhashev ')
+
+
 # bot's update error handler
 @run_async
 def error(update, context):
@@ -309,6 +333,7 @@ def error(update, context):
     # TODO send a message for the admin with error from here
 
 
+# not used now
 # text messages handler for send user keyboard for all users
 @run_async
 def filter_text_input(update, context):
@@ -344,63 +369,3 @@ def filter_text_input(update, context):
 
     else:
         bot_utils.module_logger.info("Don't send a message for had receive the message %s", usr_msg_text)
-
-
-# a handler for download the lists of coins from API agregators by job_queue of telegram.ext
-"""
-@run_async
-def download_api_coinslists_handler(context):
-
-
-    job = context.job
-
-    module_logger.info('Start a request to %s API', job.context)
-
-    url = ''
-
-    if job.context == 'coinmarketcap':
-        url = COINMARKET_API_URL_COINLIST.format(CMC_API_KEY)
-        fileoutputname = FILE_JSON_COINMARKET
-
-    elif job.context == 'cryptocompare':
-        url = CRYPTOCOMPARE_API_URL_COINLIST
-        fileoutputname = FILE_JSON_CRYPTOCOMPARE
-
-    response = requests.get(url)
-
-    # extract a json from response to a class 'dict' or 'list'
-    response_dict_list = response.json()
-
-    if response.status_code == requests.codes.ok:
-
-        # check if one of the APIs response is an error
-        if (('status' in response_dict_list and response_dict_list['status']['error_code'] != 0) or
-                (('Response' in response_dict_list) and response_dict_list['Response'] is 'Error')):
-
-            error_msg = ''
-            if job.context == 'coinmarketcap':
-                error_msg = response_dict_list['status']['error_message']
-
-            elif job.context == 'cryptocompare':
-                error_msg = response_dict_list['Message']
-
-            module_logger.error('%s error message: %s' % (job.context, error_msg))
-
-        else:
-            module_logger.info('Success download the coinslist from %s', job.context)
-
-            with open(fileoutputname, 'w') as outfile:
-                json.dump(response_dict_list, outfile)
-                module_logger.info('Success save it to %s', fileoutputname)
-
-            # save a json to variable
-            if job.context == 'coinmarketcap':
-                jsonfiles.update_cmc_json(response_dict_list)
-
-            elif job.context == 'cryptocompare':
-                jsonfiles.update_cc_json(response_dict_list)
-
-    else:
-        module_logger.error('%s not successfully response', job.context)
-
-"""
