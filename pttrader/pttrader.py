@@ -15,7 +15,8 @@ from handlers_bot import (filter_text_input,
                           set_broker_commission,
                           wallet_history,
                           ticker_data,
-                          show_portfolio_current
+                          show_portfolio_current,
+                          cancel_order
 
                           )
 
@@ -71,6 +72,9 @@ def main() -> None:
 
     portfolio_current = CommandHandler('pcur', show_portfolio_current)
     dispatcher.add_handler(portfolio_current)
+
+    cancel_order_in_query = CommandHandler('cancel', cancel_order)
+    dispatcher.add_handler(cancel_order_in_query)
 
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)

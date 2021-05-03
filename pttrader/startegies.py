@@ -8,3 +8,4 @@ strategy_example():
     pass
 """
 
+# buy and hold

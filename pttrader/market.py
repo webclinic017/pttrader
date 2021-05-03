@@ -1,4 +1,4 @@
-import requests
+
 import yfinance as yf
 import broker
 import pandas as pd

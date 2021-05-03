@@ -59,14 +59,13 @@ def help_user(update, context):
     text_response = ("List of commands: \n\n"
                      " /buy \n"
                      " /sell \n"
-                     " /check \n"
+                     " /check (to check order status in query)\n"
                      " /ticker (to get info about ticker) \n"
                      " /wcur (to show current wallet balance) \n"
-                     "whist (to show wallet history) \n"
                      " /wadd  (add money to wallet) \n"
-                     " /brcom (to change default 0.3% broker's commission rate)"
+                     " /brcom (to change default 0.3% broker's commission rate)\n"
                      " /pcur (to show current portfolio) \n"
-                     "portfolio history \n"
+                     " /cancel (to cancel order in query)\n"
                      )
 
     context.bot.send_message(usr_chat_id, text_response)
@@ -78,14 +77,14 @@ def check_orders(update: Update, context: CallbackContext):
     usr_chat_id = update.message.chat_id
     try:
         order_status_response = (broker.check_new_orders(user_data.id))
-        print('response data in check orders handler', order_status_response)
+
         # can delete first element in future
         if order_status_response[0]:
             text_response = ("Order done: " + str(order_status_response[1]))
 
             context.bot.send_message(usr_chat_id, text_response)
         elif not order_status_response[0]:
-            text_response = str(order_status_response[1])
+            text_response = order_status_response[1]
 
             context.bot.send_message(usr_chat_id, text_response)
 
@@ -322,7 +321,33 @@ def show_portfolio_current(update: Update, context: CallbackContext):
         context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text('Something wrong type to @mikhashev ')
+        update.message.reply_text('Something wrong, type to @mikhashev ')
+
+def cancel_order(update: Update, context: CallbackContext):
+    """
+    /cancel <operation_id>
+
+    """
+    bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+
+        operation_id = int(context.args[0])
+        data = [operation_id, usr_chat_id]
+        if broker.cancel_order_in_query(data):
+            text_response = (str(operation_id) + ", order canceled")
+            context.bot.send_message(usr_chat_id, text_response)
+        if not broker.cancel_order_in_query(data):
+            text_response = (str(operation_id) + ", order not found")
+            context.bot.send_message(usr_chat_id, text_response)
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /cancel <operation_id>'
+                                  '\n Example: /cancel 123456')
+
+
 
 
 # bot's update error handler

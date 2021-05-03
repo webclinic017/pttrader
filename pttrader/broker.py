@@ -91,9 +91,9 @@ def create_order_query(order_query):
             return response
         elif rub_at_wallet < order_price_total:
 
-            order_query = "You need more RUB /wcur "   \
-                           + "\nRUB at wallet: " + str(rub_at_wallet) \
-                           + "\norder price total: " + str(order_price_total)
+            order_query = "You need more RUB /wcur " \
+                          + "\nRUB at wallet: " + str(rub_at_wallet) \
+                          + "\norder price total: " + str(order_price_total)
             response = [False, order_query]
             return response
     # TODO refactor for other order types
@@ -675,6 +675,86 @@ def create_orders_query(order_query):
         return True
 
 
+def cancel_order_in_query(data):
+    """
+    delete order from orders_query.txt
+    delete data from wallet history
+    add money to wallet if was hold
+
+
+    [{"order_type": "Sell", "user_id": 486927694, "ticker": "FLOT", "order_price": 92.0, "amount": 3000,
+     "currency": "RUB", "order_price_total": 2760000.0, "created_at": "2021-04-29T10:28:01+00:00",
+      "operation_id": 925880, "instrument": "stocks", "order_status": false, "commission": 1932.0,
+      "broker_commission": 0.07, "order_description": ""},
+
+    """
+    operation_id = data[0]
+    user_id = data[1]
+
+    with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
+        data = file.read()
+    orders_query = json.loads(data)
+
+    wallet_current_data = trader.wallet_show_current(user_id)
+    wallet_history_data = trader.wallet_show_history(user_id)
+
+    for order in orders_query:
+        if order["operation_id"] == operation_id and order["order_type"] == "Buy":
+            print("order[operation_id] == operation_id and order[order_type] == Buy")
+            if order["currency"] == "RUB":
+                print("order[currency] == RUB", order)
+
+                wallet_current_data["RUB"] += (order["order_price_total"] + order["commission"])
+                wallet_current_data["RUB"] = round(wallet_current_data["RUB"], 2)
+                # save wallet data
+
+                with open("files/wallet_current_" + str(user_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+
+                # delete data from wallet history
+                portfolio_cur = wallet_history_data.set_index("operation_id")
+                wallet_history_dropped = portfolio_cur.drop(operation_id)
+
+                wallet_history_dropped.to_csv("files/wallet_history_" + str(user_id) + ".csv", index=True)
+                # delete from order query
+                orders_query.remove(order)
+                with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+                    file.write(json.dumps(orders_query))
+
+
+
+                return True
+
+            elif order["currency"] == "USD":
+                wallet_current_data["USD"] += (order["order_price_total"] + order["commission"])
+                wallet_current_data["USD"] = round(wallet_current_data["USD"], 2)
+                # save wallet data
+                with open("files/wallet_current_" + str(user_id) + ".txt", 'w') as file:
+                    file.write(json.dumps(wallet_current_data))
+                # delete data from wallet history
+                portfolio_cur = wallet_history_data.set_index("operation_id")
+                wallet_history_dropped = portfolio_cur.drop(operation_id)
+
+                wallet_history_dropped.to_csv("files/wallet_history_" + str(user_id) + ".csv", index=True)
+                # delete from order query
+                orders_query.remove(order)
+
+                with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+                    file.write(json.dumps(orders_query))
+
+                return True
+
+        # do for sell cancel
+        elif order["operation_id"] == operation_id and order["order_type"] == "Sell":
+            orders_query.remove(order)
+            with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+                file.write(json.dumps(orders_query))
+            return True
+
+    return False
+
+
+
 def check_new_orders(account_id):
     """
     Check orders status from orders_query for current user id
@@ -714,7 +794,8 @@ def check_new_orders(account_id):
 
                 # add data about done order to potrfolio_current
                 trader.portfolio_current_add_order(order_data)
-                done_orders.append(order_data["operation_id"])
+                done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] +
+                                                                               " " + str(order_data["ticker"])))
 
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "stocks":
                 # TODO make calcs for USD stocs and current USDRUB in portfolio (need to update data)
@@ -776,13 +857,15 @@ def check_new_orders(account_id):
                     # save to csv
                     df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
-                    done_orders.append(order_data["operation_id"])
+                    done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] +
+                                                                                   " " + str(order_data["ticker"])))
 
                 # there is no orders in current portfolio add one
                 elif portfolio_data.empty:
 
                     trader.portfolio_current_add_order(order_data)
-                    done_orders.append(order_data["operation_id"])
+                    done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] +
+                                                                                   " " + str(order_data["ticker"])))
 
             elif order_data['order_type'] == "Sell" and order_data['instrument'] == "currency":
 
@@ -817,7 +900,8 @@ def check_new_orders(account_id):
                         without_dropped_data.to_csv("files/portfolio_current_" + str(account_id) + ".csv",
                                                     index=False)
                         # order done sent response to handlers
-                        done_orders.append(order_data["operation_id"])
+                        done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] +
+                                                                                       " " + str(order_data["ticker"])))
 
                     else:
 
@@ -852,19 +936,20 @@ def check_new_orders(account_id):
 
                         # order done sent response to handlers
 
-                        done_orders.append(order_data["operation_id"])
-
+                        done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] +
+                                                                                       " " + str(order_data["ticker"])))
 
                 # delete data about order if amount in order = amount from portfolio current
 
 
         elif not order_status_response[0]:
-            not_done_orders.append(order_data["operation_id"])
-            print("Order:", order_data["operation_id"], "not done")
+            not_done_orders.append(str(order_data["operation_id"]) + " " + str(order_data["order_type"] \
+                                                                               + " " + str(
+                order_data["ticker"] + " " + str(order_data["order_price"]
+                                                 ))))
 
-    # save changes in order query to file
+    # sent changes in response
+    order_data = "Not done orders: " + str(not_done_orders) + "\n\nDone orders: " + str(done_orders)
 
-    order_data = {" Not done orders: ": not_done_orders, " Done orders": done_orders}
-    print("Not done orders in query: " + str(len(new_order_list)))
     response = [False, order_data]
     return response
