@@ -40,6 +40,7 @@ def start(update: Update, context: CallbackContext):
 
     user_login = update.message.from_user.username
     # check if user exist, if not create new user database
+
     if login.user_logging(user_login, usr_chat_id):
         context.bot.send_message(usr_chat_id, text_response_2)
 
@@ -53,7 +54,7 @@ def start(update: Update, context: CallbackContext):
             trader.portfolio_create_new(usr_chat_id)
             context.bot.send_message(usr_chat_id, text_response)
 
-
+@run_async
 def help_user(update, context):
     usr_chat_id = update.message.chat_id
     text_response = ("List of commands: \n\n"
@@ -66,11 +67,12 @@ def help_user(update, context):
                      " /brcom (to change default 0.3% broker's commission rate)\n"
                      " /pcur (to show current portfolio) \n"
                      " /cancel (to cancel order in query)\n"
+                     " Если есть вопросы, пишите автору @mikhashev\n"
                      )
 
     context.bot.send_message(usr_chat_id, text_response)
 
-
+@run_async
 def check_orders(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
@@ -91,7 +93,7 @@ def check_orders(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text("Usage: /check")
 
-
+@run_async
 def ticker_data(update: Update, context: CallbackContext):
     """
     return data about ticker:
@@ -120,7 +122,7 @@ def ticker_data(update: Update, context: CallbackContext):
         update.message.reply_text("Usage: /ticker <ticker>"
                                   "\n Example: /ticker sber")
 
-
+@run_async
 def buy(update: Update, context: CallbackContext):
     """
     user message: /buy <ticker> <price> <amount> <order_description>
@@ -164,7 +166,7 @@ def buy(update: Update, context: CallbackContext):
                                   "\nExample: /buy sber 220.01 10 I buy because of COVID 2019 and"
                                   " think that price will grow up to 300")
 
-
+@run_async
 def sell(update: Update, context: CallbackContext):
     """
     same as for buy
@@ -176,7 +178,7 @@ def sell(update: Update, context: CallbackContext):
 
     try:
         # use context args[n] n- number, to get user input data
-        # /buy ticker order_price amount
+        # /sell ticker order_price amount
         ticker = str(context.args[0].upper())
         order_price = float(context.args[1])
         if ticker == "USDRUB":
@@ -199,24 +201,19 @@ def sell(update: Update, context: CallbackContext):
             response_data = broker.create_order_query(data_query)
             # respond data is nested list [bool,[list]]
         if response_data[0]:
-            text_response = ("Order, created " + str(response_data[1]))
+            text_response = ("Ордер на продажу создан: " + str(response_data[1]))
             context.bot.send_message(usr_chat_id, text_response)
-        elif not response_data[0] and len(response_data[1]) > 2:
-            total_money = response_data[1][6]
-            currency = response_data[1][5]
-            text_response = ("Order not created, check wallet balance /wcur " +
-                             "\n Order total: " + str(total_money) + currency)
-            context.bot.send_message(usr_chat_id, text_response)
+
         elif not response_data[0]:
             text_response = response_data[1]
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /sell <ticker> <price> <operation_id> <order_description>"
-                                  "\n Example: /sell sber 320.01 123456 reason to sell"
-                                  "\n For currency /sell usdrub <price> <amount> <order_description> ")
+        update.message.reply_text("Использование: /sell <ticker> <price> <operation_id> <order_description>"
+                                  "\n Пример: /sell sber 320.01 123456 Причина продажи"
+                                  "\n Для продажи валюты:  /sell usdrub <price> <amount> <order_description> ")
 
-
+@run_async
 def wallet_current(update: Update, context: CallbackContext):
     """
     this function show current user wallet balance
@@ -232,7 +229,7 @@ def wallet_current(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong with your wallet. check it ')
 
-
+@run_async
 def wallet_history(update: Update, context: CallbackContext):
     """
     this function show current user wallet history
@@ -248,11 +245,31 @@ def wallet_history(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong with your wallet. check it ')
 
-
+@run_async
 def wallet_add(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
+
+
+    #check if user exist already
+
+    user_login = update.message.from_user.username
+    # check if user exist, if not create new user database
+
+    if login.user_logging(user_login, usr_chat_id):
+        pass
+
+    # if user use bot first time, we need to create all new user files
+    elif not login.user_logging(user_login, usr_chat_id):
+        if login.create_traders_accounts_file():
+            login.add_user_to_traders_account_file(user_login, usr_chat_id)
+            # create new wallet current file and new wallet history file
+            trader.wallet_create_new(usr_chat_id)
+            # create new portfolio current and new portfolio history files
+            trader.portfolio_create_new(usr_chat_id)
+            pass
+
 
     try:
         # use context args[n] n- number, to get user input data
@@ -274,7 +291,7 @@ def wallet_add(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /wadd <amount> <currency> \n'
                                   'Example: /wadd 1000 rub')
 
-
+@run_async
 def set_broker_commission(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
@@ -296,7 +313,7 @@ def set_broker_commission(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /brcom <rate>'
                                   '\n Example: /brcom 0.05')
 
-
+@run_async
 def show_portfolio_current(update: Update, context: CallbackContext):
     """
     this function show current user portfolio
@@ -322,7 +339,7 @@ def show_portfolio_current(update: Update, context: CallbackContext):
 
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong, type to @mikhashev ')
-
+@run_async
 def cancel_order(update: Update, context: CallbackContext):
     """
     /cancel <operation_id>

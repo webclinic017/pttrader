@@ -230,6 +230,20 @@ def create_order_query(order_query):
 
         buy_operation_id = order_query[4]
 
+        # check if order to sell already in order query
+
+        with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
+            data = file.read()
+        new_order_list = json.loads(data)
+        for order in new_order_list:
+
+            if buy_operation_id == order['operation_id']:
+                text_response = "Ордер на продажу уже в очереди. Ждите его исполнения или отмените /cancel "+\
+                                str(buy_operation_id)
+                response = [False, text_response]
+
+                return response
+
         portfolio_all_data = trader.portfolio_show_current(user_id)
         portfolio_data = (portfolio_all_data[portfolio_all_data["operation_id"] == buy_operation_id])
         if not portfolio_data.empty:
@@ -744,7 +758,7 @@ def cancel_order_in_query(data):
 
                 return True
 
-        # do for sell cancel
+        # TODO for sell cancel if order was create before
         elif order["operation_id"] == operation_id and order["order_type"] == "Sell":
             orders_query.remove(order)
             with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
