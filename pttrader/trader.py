@@ -153,7 +153,7 @@ def wallet_add_money(data_query):
 
             return True
     # may be delete this, because it is reserved if wallet not created at /start
-    elif not is_wallet_current_exist(account_id) and is_wallet_history_exist(account_id):
+    elif not is_wallet_current_exist(account_id) and not is_wallet_history_exist(account_id):
         if wallet_create_new(account_id):
             wallet_history_data = wallet_show_history(account_id)
             wallet_current_data = wallet_show_current(account_id)
@@ -161,9 +161,8 @@ def wallet_add_money(data_query):
             currency = str()
             for key in wallet_current_data.keys():
                 currency = key
-            # can change to foo input user data
-            print("Enter amount to add:")
-            amount = get_user_input_data()
+
+
             operation = "add"
             instrument = "currency"
             # random id generator foo
@@ -202,7 +201,7 @@ def wallet_add_money(data_query):
 
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
-        return
+        return False
 
 
 def wallet_show_current(account_id):

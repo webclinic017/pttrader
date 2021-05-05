@@ -21,16 +21,17 @@ def user_logging(user_login, account_id):
         if get_user_account_id(user_login, account_id)[0]:
             return True
 
-        elif not get_user_account_id(user_login, account_id)[0]:
+        else:
             # need to add new user or user made mistake in input data
-
-            if add_user_to_traders_account_file(user_login, account_id):
-                return True
+            print("new user")
+            return False
+            # if add_user_to_traders_account_file(user_login, account_id):
+            #     return True
 
 
     # this is new login and account id
     elif not trader_accounts_file_exist():
-
+        print("new user not trader_accounts_file_exist()")
         return False
 
 def check_user_login(user_login, account_id):
@@ -60,13 +61,15 @@ def create_traders_accounts_file():
     if not Path("files").is_dir():
         os.mkdir("files")
 
-    # add empty data to local database
-    empty_data = []
-    with open('files/traders_accounts.txt', 'w+') as file:
-        file.write(json.dumps(empty_data))
-    # self checking
-    if trader_accounts_file_exist():
+    elif not trader_accounts_file_exist():
+
+        # add empty data to local database
+        empty_data = []
+        with open('files/traders_accounts.txt', 'w+') as file:
+            file.write(json.dumps(empty_data))
         return True
+
+
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return False
@@ -99,6 +102,8 @@ def get_user_account_id(user_login, account_id):
             return response
         else:
             pass
+
+
 
     response = [False, account_id]
     return response

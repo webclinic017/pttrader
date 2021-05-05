@@ -8,6 +8,8 @@ import trader
 import broker
 import market
 import json
+import urllib
+from urllib.request import urlopen
 
 
 # send a start message, command handler
@@ -24,19 +26,24 @@ def start(update: Update, context: CallbackContext):
         usr_name += ' ' + update.message.from_user.last_name
     usr_chat_id = update.message.chat_id
 
-    text_response = ('Hi, new user ' + usr_name + "!" +
-                     "\n Type /help to see all available commands "
-                     "\n * first add money /wadd to your current wallet /wcur  "
-                     "\n * use /ticker to check data about stock "
-                     "\n * use /buy to create buy order"
-                     "\n * use /check to check order status")
+    text_response = ('Привет, новый пользователь ' + usr_name + "!" +
 
-    text_response_2 = ('Hi, again ' + usr_name + "!" +
-                       "\n Type /help to see all available commands "
-                       "\n * first add money to your current wallet /wadd "
-                       "\n * use /ticker to check data about stock "
-                       "\n * use /buy to create buy order"
-                       "\n * use /check to check order status")
+                     "\n pttrader используется для автоматизации создания записей о ваших сделках.  "
+                     "\n Учет сделок ведется в таблицах, которые пользователь может получить для анализа. "
+                     "\n * Для начала работы нужно добавить виртуальных денег на ваш кошелек"
+                     "\n * напишите или нажмите на команду /wadd чтобы увидеть пример"
+                     "\n * После добавления денег бот вернет сообщение с балансом кошелька:"
+                     "\n * Например {RUB: 1000.0, USD: 0.0, broker_commission: 0.3} "
+                     "\n * команда /buy используется для содания ордера на покупку, нажмите на нее чтобы увидеть пример"
+                     "\n * команда /check для проверки статуса созданного ордера"
+                     "\n Напиши или нажми на /help чтобы увидеть все доступные команды ")
+
+    text_response_2 = ('Привет, ' + usr_name + "!" +
+                       "\n Напиши или нажми /help чтобы увидеть все доступные команды "
+                       "\n * Сначала нужно добавить /wadd виртуальных денег на ваш кошелек /wcur  "
+                       "\n * написать команду /ticker название тикера чтобы получить информацию о нём  "
+                       "\n * команда /buy используется для содания ордера на покупку"
+                       "\n * команда /check для проверки статуса созданного ордера")
 
     user_login = update.message.from_user.username
     # check if user exist, if not create new user database
@@ -46,7 +53,15 @@ def start(update: Update, context: CallbackContext):
 
     # if user use bot first time, we need to create all new user files
     elif not login.user_logging(user_login, usr_chat_id):
-        if login.create_traders_accounts_file():
+        if login.trader_accounts_file_exist():
+            login.add_user_to_traders_account_file(user_login, usr_chat_id)
+            # create new wallet current file and new wallet history file
+            trader.wallet_create_new(usr_chat_id)
+            # create new portfolio current and new portfolio history files
+            trader.portfolio_create_new(usr_chat_id)
+            context.bot.send_message(usr_chat_id, text_response)
+        else:
+            login.create_traders_accounts_file()
             login.add_user_to_traders_account_file(user_login, usr_chat_id)
             # create new wallet current file and new wallet history file
             trader.wallet_create_new(usr_chat_id)
@@ -57,16 +72,18 @@ def start(update: Update, context: CallbackContext):
 @run_async
 def help_user(update, context):
     usr_chat_id = update.message.chat_id
-    text_response = ("List of commands: \n\n"
+    text_response = ("Список доступных команд: \n\n"
+                     " Нажмите на любую команду чтобы получить подсказку\n"
                      " /buy \n"
                      " /sell \n"
-                     " /check (to check order status in query)\n"
-                     " /ticker (to get info about ticker) \n"
-                     " /wcur (to show current wallet balance) \n"
-                     " /wadd  (add money to wallet) \n"
-                     " /brcom (to change default 0.3% broker's commission rate)\n"
+                     " /check (проверка статуса заявок на покупку и продажу)\n"
+                     " /ticker (получить информацию о тикере) \n"
+                     " /wcur (показывает текущий баланс на кошельке) \n"
+                     " /wadd  (добавить денег на кошелек) \n"
+                     " /brcom (установить размер брокерской коммиссии (0.3% по умолчанию))\n"
                      " /pcur (to show current portfolio) \n"
                      " /cancel (to cancel order in query)\n"
+                     " /start чтобы увидеть начальный текст с примерами"
                      " Если есть вопросы, пишите автору @mikhashev\n"
                      )
 
@@ -104,23 +121,44 @@ def ticker_data(update: Update, context: CallbackContext):
     """
     bot_utils.command_info(update)
     usr_chat_id = update.message.chat_id
-
+    # TODO add economy sector info
     try:
         ticker = str(context.args[0].upper())
 
-        current_ticker_price = market.get_ticker_price(ticker)
-        currency = market.get_ticker_currency(ticker)
-        price_increment = market.get_ticker_min_price_increment(ticker)
-        lot_size = market.get_ticker_lot_size(ticker)
+        data_link = 'https://api-invest.tinkoff.ru/trading/stocks/get?ticker=' + ticker
+        data = urllib.request.urlopen(data_link)
+        data = data.read().decode("utf-8")
+        data = json.loads(data)
 
-        text_response = ("current price: " + str(current_ticker_price) + " " + currency +
-                         "\n price increment: " + str(price_increment) +
-                         "\n lot size: " + str(lot_size))
+        data = data["payload"]
+        print(data['exchangeStatus'])
+        if data['exchangeStatus'] == "Open":
+
+            current_ticker_price = market.get_ticker_price(ticker)
+            currency = market.get_ticker_currency(ticker)
+            price_increment = market.get_ticker_min_price_increment(ticker)
+            lot_size = market.get_ticker_lot_size(ticker)
+            exchange_status = "открыта"
+
+        else:
+            data_price = data['price']
+            current_ticker_price = data_price["value"]
+            currency = data_price['currency']
+            data_symbol = data["symbol"]
+            price_increment = data_symbol['minPriceIncrement']
+            lot_size = data_symbol['lotSize']
+            exchange_status = "закрыта"
+
+
+        text_response = ("средняя цена последней минуты: " + str(current_ticker_price) + " " + currency +
+                         "\nинкремент цены: " + str(price_increment) +
+                         "\nразмер лота: " + str(lot_size) +
+                         "\nбиржа " + str(exchange_status))
         context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /ticker <ticker>"
-                                  "\n Example: /ticker sber")
+        update.message.reply_text("Применение: /ticker <тикер>"
+                                  "\n Пример: /ticker sber")
 
 @run_async
 def buy(update: Update, context: CallbackContext):
@@ -136,7 +174,7 @@ def buy(update: Update, context: CallbackContext):
     order_type = "Buy"
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
-    # TODO  test add order_description parameter Why do you buy?. /buy <ticker> <price> <amount> <text>
+    # TODO  Can you create buy order when exchange is closed?
     try:
         # use context args[n] n- number, to get user input data
         # /buy ticker order_price amount
@@ -149,12 +187,12 @@ def buy(update: Update, context: CallbackContext):
 
         # make list to create order query
         data_query = [order_type, user_data.id, ticker, order_price, amount, order_description]
-        print(data_query)
+
         response_data = broker.create_order_query(data_query)
         # respond data is nested list [bool,[list]]
-        print('response data in buy handler', response_data)
+
         if response_data[0]:
-            text_response = ("Order, created " + str(response_data[1]))
+            text_response = ("Ордер на покупку создан: " + str(response_data[1]))
             context.bot.send_message(usr_chat_id, text_response)
 
         elif not response_data[0]:
@@ -162,9 +200,9 @@ def buy(update: Update, context: CallbackContext):
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text("Usage: /buy <ticker> <price> <amount> <order_description>"
-                                  "\nExample: /buy sber 220.01 10 I buy because of COVID 2019 and"
-                                  " think that price will grow up to 300")
+        update.message.reply_text("Применение: /buy <тикер> <цена покупки> <количество лотов> <текстовое описание>"
+                                  "\nПример: /buy sber 220.01 10 Думаю что из за ипотечных кредитов через год "
+                                  "вырастит до 400 рублей")
 
 @run_async
 def sell(update: Update, context: CallbackContext):
@@ -175,7 +213,7 @@ def sell(update: Update, context: CallbackContext):
     order_type = "Sell"
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
-
+    # TODO  Can you create buy order when exchange is closed?
     try:
         # use context args[n] n- number, to get user input data
         # /sell ticker order_price amount
@@ -282,14 +320,18 @@ def wallet_add(update: Update, context: CallbackContext):
 
         data_query = [user_data.id, currency, amount, operation_id, instrument, operation]
 
-        trader.wallet_add_money(data_query)
+        if trader.wallet_add_money(data_query):
 
-        text_response = (trader.wallet_show_current(user_data.id))
-        context.bot.send_message(usr_chat_id, text_response)
+            text_response = (trader.wallet_show_current(user_data.id))
+            context.bot.send_message(usr_chat_id, text_response)
+
+        elif not trader.wallet_add_money(data_query):
+            text_response = "Что-то пошло не так, пожалуйста повторите операцию"
+            context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /wadd <amount> <currency> \n'
-                                  'Example: /wadd 1000 rub')
+        update.message.reply_text('Использование: /wadd <количество> <валюта> \n'
+                                  'Пример: /wadd 1000 rub')
 
 @run_async
 def set_broker_commission(update: Update, context: CallbackContext):
@@ -324,18 +366,22 @@ def show_portfolio_current(update: Update, context: CallbackContext):
 
     try:
         portfolio_data = (trader.portfolio_show_current(user_data.id))
+        if portfolio_data.empty:
+            text_response = "В вашем портфолио пока ничего нет."
+            context.bot.send_message(usr_chat_id, text_response)
 
-        portfolio_orders = portfolio_data.to_json(orient="split", index=False).encode('utf8')
+        else:
+            portfolio_orders = portfolio_data.to_json(orient="split", index=False).encode('utf8')
 
-        data = json.loads(portfolio_orders)
+            data = json.loads(portfolio_orders)
 
-        data_response = ""
-        #parsed = json.dumps(data, indent=2).encode('utf8')
-        for order in data['data']:
+            data_response = ""
+            #parsed = json.dumps(data, indent=2).encode('utf8')
+            for order in data['data']:
 
-            data_response += str(order)+"\n\n\n"
-        text_response = data_response
-        context.bot.send_message(usr_chat_id, text_response)
+                data_response += str(order)+"\n\n\n"
+            text_response = data_response
+            context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong, type to @mikhashev ')

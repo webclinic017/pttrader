@@ -69,16 +69,19 @@ def get_ticker_price(order_data):
     client = tinkof_api_auth()
 
     now = datetime.datetime.utcnow()
-    created_at = now - datetime.timedelta(minutes=5)
+    created_at = now - datetime.timedelta(minutes=2)
     current_time = now.isoformat("T", timespec="seconds") + "Z"
     minute_before = created_at.isoformat("T", timespec="seconds") + "Z"
 
     interval = "1min"
-    candles_data = (client.market.market_candles_get(figi=figi, _from=minute_before, to=current_time, interval=interval))
-    # need to get last minute close ticker price
-    current_price = candles_data.payload.candles[0].c
 
-    return current_price
+    candles_data = (client.market.market_candles_get(figi=figi, _from=minute_before, to=current_time, interval=interval))
+
+
+    # need to get last minute close ticker price
+    average_price = (candles_data.payload.candles[0].h + candles_data.payload.candles[0].l) / 2
+
+    return average_price
 
 
 def get_ticker_lot_size(order_data):
