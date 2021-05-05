@@ -331,21 +331,19 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     #interval = "1min"  # valid intervals ("1min","2min","3min","5min","10min","15min",
     # "30min","hour","2hour","4hour","day","week","month")
     time_to_check = created_at_raw.split(sep="T")[0]
-    print(time_to_check)
+
 
     time_to_compare = now.split(sep="T")[0]
-    print(time_to_compare)
 
-    print(time_to_check == time_to_compare)
     # print("created_at", created_at)
     # print("now", now)
     interval = ""
     if time_to_check == time_to_compare:
         interval += "1min"
-        print(interval)
+
     elif time_to_check != time_to_compare:
         interval += "day"
-        print(interval)
+
     # for russian stocks
     if currency == "RUB" and instrument == "stocks":  # russian stocks
         print("Try to get data from tinkoff for ", ticker, "instrument:", instrument, "created_at", created_at)
@@ -481,8 +479,7 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
 
         try:
             candles_data = (client.market.market_candles_get(figi=figi, _from=created_at, to=now, interval=interval))
-            print(candles_data)
-            print(figi, created_at, now, interval)
+
         except Exception as e:
             print("no data",e)
             order_done_at = broker.get_current_time()
