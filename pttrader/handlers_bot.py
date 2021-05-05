@@ -69,6 +69,7 @@ def start(update: Update, context: CallbackContext):
             trader.portfolio_create_new(usr_chat_id)
             context.bot.send_message(usr_chat_id, text_response)
 
+
 @run_async
 def help_user(update, context):
     usr_chat_id = update.message.chat_id
@@ -88,6 +89,7 @@ def help_user(update, context):
                      )
 
     context.bot.send_message(usr_chat_id, text_response)
+
 
 @run_async
 def check_orders(update: Update, context: CallbackContext):
@@ -110,6 +112,7 @@ def check_orders(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text("Usage: /check")
 
+
 @run_async
 def ticker_data(update: Update, context: CallbackContext):
     """
@@ -122,6 +125,7 @@ def ticker_data(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     usr_chat_id = update.message.chat_id
     # TODO add economy sector info
+
     try:
         ticker = str(context.args[0].upper())
 
@@ -130,35 +134,68 @@ def ticker_data(update: Update, context: CallbackContext):
         data = data.read().decode("utf-8")
         data = json.loads(data)
 
-        data = data["payload"]
-        print(data['exchangeStatus'])
-        if data['exchangeStatus'] == "Open":
+        data_payload = data["payload"]
+
+        if data_payload['exchangeStatus'] == "Open":
 
             current_ticker_price = market.get_ticker_price(ticker)
-            currency = market.get_ticker_currency(ticker)
-            price_increment = market.get_ticker_min_price_increment(ticker)
-            lot_size = market.get_ticker_lot_size(ticker)
-            exchange_status = "открыта"
 
-        else:
-            data_price = data['price']
+            if not current_ticker_price[0]:
+
+                data_price = data_payload['price']
+
+                current_ticker_price = data_price["value"]
+                currency = data_price['currency']
+                data_symbol = data_payload["symbol"]
+                price_increment = data_symbol['minPriceIncrement']
+                lot_size = data_symbol['lotSize']
+                exchange_status = "открыта"
+                text_response = (
+                            "последняя цена: " + str(current_ticker_price) + " " + currency +
+                            "\nинкремент цены: " + str(price_increment) +
+                            "\nразмер лота: " + str(lot_size) +
+                            "\nбиржа " + str(exchange_status))
+                context.bot.send_message(usr_chat_id, text_response)
+
+            elif current_ticker_price[0]:
+                try:
+                    currency = market.get_ticker_currency(ticker)
+                    price_increment = market.get_ticker_min_price_increment(ticker)
+                    lot_size = market.get_ticker_lot_size(ticker)
+                    exchange_status = "открыта"
+
+                    text_response = (
+                                "средняя цена последней минуты: " + str(current_ticker_price[1]) + " " + currency +
+                                "\nинкремент цены: " + str(price_increment) +
+                                "\nразмер лота: " + str(lot_size) +
+                                "\nбиржа " + str(exchange_status))
+                    context.bot.send_message(usr_chat_id, text_response)
+                except Exception as e:
+                    print(e)
+
+        elif data_payload['exchangeStatus'] == "Close":
+
+            data_price = data_payload['price']
+
             current_ticker_price = data_price["value"]
             currency = data_price['currency']
-            data_symbol = data["symbol"]
+            data_symbol = data_payload["symbol"]
             price_increment = data_symbol['minPriceIncrement']
             lot_size = data_symbol['lotSize']
             exchange_status = "закрыта"
+            text_response = ("последняя цена: " + str(current_ticker_price) + " " + currency +
+                             "\nинкремент цены: " + str(price_increment) +
+                             "\nразмер лота: " + str(lot_size) +
+                             "\nбиржа " + str(exchange_status))
+            context.bot.send_message(usr_chat_id, text_response)
 
 
-        text_response = ("средняя цена последней минуты: " + str(current_ticker_price) + " " + currency +
-                         "\nинкремент цены: " + str(price_increment) +
-                         "\nразмер лота: " + str(lot_size) +
-                         "\nбиржа " + str(exchange_status))
-        context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
+
         update.message.reply_text("Применение: /ticker <тикер>"
                                   "\n Пример: /ticker sber")
+
 
 @run_async
 def buy(update: Update, context: CallbackContext):
@@ -203,6 +240,7 @@ def buy(update: Update, context: CallbackContext):
         update.message.reply_text("Применение: /buy <тикер> <цена покупки> <количество лотов> <текстовое описание>"
                                   "\nПример: /buy sber 220.01 10 Думаю что из за ипотечных кредитов через год "
                                   "вырастит до 400 рублей")
+
 
 @run_async
 def sell(update: Update, context: CallbackContext):
@@ -251,6 +289,7 @@ def sell(update: Update, context: CallbackContext):
                                   "\n Пример: /sell sber 320.01 123456 Причина продажи"
                                   "\n Для продажи валюты:  /sell usdrub <price> <amount> <order_description> ")
 
+
 @run_async
 def wallet_current(update: Update, context: CallbackContext):
     """
@@ -266,6 +305,7 @@ def wallet_current(update: Update, context: CallbackContext):
 
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong with your wallet. check it ')
+
 
 @run_async
 def wallet_history(update: Update, context: CallbackContext):
@@ -283,14 +323,14 @@ def wallet_history(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong with your wallet. check it ')
 
+
 @run_async
 def wallet_add(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
 
-
-    #check if user exist already
+    # check if user exist already
 
     user_login = update.message.from_user.username
     # check if user exist, if not create new user database
@@ -307,7 +347,6 @@ def wallet_add(update: Update, context: CallbackContext):
             # create new portfolio current and new portfolio history files
             trader.portfolio_create_new(usr_chat_id)
             pass
-
 
     try:
         # use context args[n] n- number, to get user input data
@@ -333,6 +372,7 @@ def wallet_add(update: Update, context: CallbackContext):
         update.message.reply_text('Использование: /wadd <количество> <валюта> \n'
                                   'Пример: /wadd 1000 rub')
 
+
 @run_async
 def set_broker_commission(update: Update, context: CallbackContext):
     bot_utils.command_info(update)
@@ -355,6 +395,7 @@ def set_broker_commission(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /brcom <rate>'
                                   '\n Example: /brcom 0.05')
 
+
 @run_async
 def show_portfolio_current(update: Update, context: CallbackContext):
     """
@@ -376,15 +417,16 @@ def show_portfolio_current(update: Update, context: CallbackContext):
             data = json.loads(portfolio_orders)
 
             data_response = ""
-            #parsed = json.dumps(data, indent=2).encode('utf8')
+            # parsed = json.dumps(data, indent=2).encode('utf8')
             for order in data['data']:
-
-                data_response += str(order)+"\n\n\n"
+                data_response += str(order) + "\n\n\n"
             text_response = data_response
             context.bot.send_message(usr_chat_id, text_response)
 
     except (IndexError, ValueError):
         update.message.reply_text('Something wrong, type to @mikhashev ')
+
+
 @run_async
 def cancel_order(update: Update, context: CallbackContext):
     """
@@ -409,8 +451,6 @@ def cancel_order(update: Update, context: CallbackContext):
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /cancel <operation_id>'
                                   '\n Example: /cancel 123456')
-
-
 
 
 # bot's update error handler

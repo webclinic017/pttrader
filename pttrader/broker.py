@@ -963,7 +963,7 @@ def check_new_orders(account_id):
                                                  ))))
 
     # sent changes in response
-    order_data = "Not done orders: " + str(not_done_orders) + "\n\nDone orders: " + str(done_orders)
+    order_data = "Неисполненные заявки: " + str(not_done_orders) + "\n\nВыполненые заявки: " + str(done_orders)
 
     response = [False, order_data]
     return response

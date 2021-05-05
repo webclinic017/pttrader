@@ -79,9 +79,13 @@ def get_ticker_price(order_data):
 
 
     # need to get last minute close ticker price
-    average_price = (candles_data.payload.candles[0].h + candles_data.payload.candles[0].l) / 2
 
-    return average_price
+    if len(candles_data.payload.candles) != 0:
+        average_price = [True, round((candles_data.payload.candles[0].h + candles_data.payload.candles[0].l) / 2, 3)]
+
+        return average_price
+    else:
+        return [False, 0]
 
 
 def get_ticker_lot_size(order_data):
