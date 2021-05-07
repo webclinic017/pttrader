@@ -4,7 +4,7 @@ import os
 import reply_markups as rm
 
 
-# start logging to the file of current directory or º it to console
+# # start logging to the file of current directory or º it to console
 # logging.basicConfig(level=logging.INFO,
 #                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # module_logger = logging.getLogger(__name__)

@@ -452,6 +452,36 @@ def cancel_order(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /cancel <operation_id>'
                                   '\n Example: /cancel 123456')
 
+# commands for tinkoff API ank private key
+
+def operations_sync(update: Update, context: CallbackContext):
+    """
+    /sync
+    type command in telegram to syncronize your real trade operations witch current operations database
+    :return: text
+    """
+    # when user sent /sync
+    #bot_utils.command_info(update)
+    user_data = update.effective_user
+    usr_chat_id = update.message.chat_id
+
+    try:
+        # get operations data from real user brokers account
+        # update data in local database
+        # if database not exist, create new
+        if trader.save_operations_to_history(usr_chat_id):
+
+            print("Данные истории операций обновлены")
+        else:
+
+            print(" Что то не так")
+
+    except Exception as e :
+        print(e)
+        update.message.reply_text("Использование: /sync")
+
+
+
 
 # bot's update error handler
 @run_async

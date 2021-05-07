@@ -1,16 +1,17 @@
 import pandas as pd
 from pathlib import Path
-import datetime
 from random import randint
 import json
 import sys
 import broker
+import market
+from time import sleep
+
+from pytz import timezone
+from openapi_client import openapi
+from datetime import datetime, timedelta
+
 pd.set_option('display.max_columns', None)
-
-
-def get_user_input_data():
-    user_input = input(">>")
-    return user_input
 
 
 def get_random_id():
@@ -38,9 +39,9 @@ def wallet_create_new(account_id):
         with open("files/wallet_current_" + str(account_id) + ".txt", 'w+') as file:
             file.write(json.dumps(wallet_current_data))
 
-        wallet_history_df = pd.DataFrame(columns=[ "operation_id", "currency", "amount", "operation",
-                                                   "instrument",  "date_time",
-                                                   ])
+        wallet_history_df = pd.DataFrame(columns=["operation_id", "currency", "amount", "operation",
+                                                  "instrument", "date_time",
+                                                  ])
         wallet_history_df.to_csv("files/wallet_history_" + str(account_id) + ".csv", index=False)
 
         # check if files are created
@@ -90,7 +91,6 @@ def wallet_set_broker_commission(data_query):
         return False
 
 
-
 def wallet_add_money(data_query):
     """
     This function used to add money to current wallet file
@@ -106,7 +106,7 @@ def wallet_add_money(data_query):
     amount = data_query[2]
     operation_id = data_query[3]
     instrument = data_query[4]
-    operation = data_query [5]
+    operation = data_query[5]
 
     current_time = broker.get_current_time()
 
@@ -161,7 +161,6 @@ def wallet_add_money(data_query):
             currency = str()
             for key in wallet_current_data.keys():
                 currency = key
-
 
             operation = "add"
             instrument = "currency"
@@ -369,9 +368,7 @@ def portfolio_current_add_order(data):
         return False
 
 
-
 def portfolio_history_add_order(data):
-
     """
      data:
      {'order_type': 'Buy', 'user_id': 39460, 'ticker': 'NMTP', 'order_price': 7.8, 'amount': 10, 'currency': 'RUB',
@@ -483,7 +480,7 @@ def portfolio_move_from_current(order_data):
     if not portfolio_filtered_data.empty:
         portfolio_hist = portfolio_show_history(account_id)
         portfolio_history = portfolio_hist.append(portfolio_filtered_data)
-        #print("portfolio_history \n", portfolio_history)
+        # print("portfolio_history \n", portfolio_history)
         # save data to portfolio history csv
         portfolio_history.to_csv("files/portfolio_history_" + str(account_id) + ".csv", index=False)
 
@@ -498,6 +495,389 @@ def portfolio_move_from_current(order_data):
     elif portfolio_filtered_data.empty:
         print(" data not found")
         return False
+
+
+def is_all_operations_history_exist(account_id):
+    operations_data = Path("files/all_operations_history_" + str(account_id) + ".csv")
+    if Path("files").is_dir() and operations_data.is_file():
+        return True
+    else:
+        return False
+
+
+def create_operations_history_file(account_id):
+    # this functions for portfolio
+    """
+    This function creates  .csv file:
+    for storing all operations history
+
+    """
+
+    all_operations_history_df = pd.DataFrame(
+        columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
+                 "quantity", "payment", "commission", "created_at", "done_at"
+                 ])
+
+    all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
+    # check is file created
+    if is_all_operations_history_exist(account_id):
+        return True
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        return False
+
+
+def get_operations_data_from_broker(account_id):
+    """
+    return list
+    """
+    # todo choose period
+    history_period = 1000
+    now = datetime.now(tz=timezone('Europe/Moscow'))
+    yesterday = now - timedelta(days=history_period)
+    client = market.tinkof_api_auth()
+    ops = client.operations.operations_get(_from=yesterday.isoformat(), to=now.isoformat())
+    operations_data = ops.payload
+
+    return operations_data.operations
+
+
+def save_operations_to_history(account_id):
+
+    data = {}
+    client = market.tinkof_api_auth()
+    all_operations_history_df = pd.DataFrame(
+        columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
+                 "quantity", "payment", "commission", "created_at", "done_at"
+                 ])
+    # if already exist history - > rewrite
+    if is_all_operations_history_exist(account_id):
+        list_of_operations = []
+        list_of_operations.append(get_operations_data_from_broker(account_id))
+        print(len(list_of_operations[0]))
+        count = 0
+        for operation in list_of_operations[0]:
+            if count == 200:
+                print('sleep')
+                sleep(10)
+
+                count = 0
+
+
+
+            operation_id = []
+            operation_type = []  # Buy, Sell
+            instrument_type = []  # Stock,
+            figi = []  # need to convert to ticker name
+            ticker = []  # store as ticker
+            currency = []  # RUB, USD
+            price = []
+            quantity = []  # like amount
+            payment = []  # like order price total
+            commission = []
+            created_at = []
+            done_at = []
+            if operation.operation_type == 'Buy' and operation.status == "Done":
+                print(operation.operation_type)
+
+                operation_id.append(operation.id)
+                operation_type.append(operation.operation_type)
+                instrument_type.append(operation.instrument_type)  # Stock,
+                figi = operation.figi  # need to convert to ticker name
+                figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
+                ticker.append(figi_data.payload.ticker)  # store as ticker
+                currency.append(operation.currency)  # RUB, USD
+                price.append(operation.price)
+                quantity.append(operation.quantity)  # like amount
+                payment.append(operation.payment)  # like order price total
+                commission_data = operation.commission
+                if commission_data is not None:
+                    commission.append(commission_data.value)
+                else:
+                    commission.append("None")
+
+                # TODO keep same timeformat as usual
+                done_at_data = operation.trades
+
+                if done_at_data is not None:
+                    done_at.append((done_at_data[0].date).isoformat('T'))
+
+                created_at.append(operation.date.isoformat('T'))
+
+                print(operation_id)
+                print(operation_type)  # Buy, Sell
+                print(instrument_type)  # Stock,
+
+                print(ticker) # store as ticker
+                print(currency)  # RUB, USD
+                print(price)
+                print(quantity)  # like amount
+                print(payment)  # like order price total
+                print(commission)
+                print(created_at)
+                print(done_at)
+
+                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                                                                        "operation_type": operation_type[0],
+                                                                        "instrument_type": instrument_type[0],
+                                                                        "ticker": ticker[0],
+                                                                        "currency": currency[0],
+                                                                        "price": price[0],
+                                                                        "quantity": quantity[0],
+                                                                        "payment": payment[0],
+                                                                        "commission": commission[0],
+                                                                        "created_at": created_at[0],
+                                                                        "done_at": done_at[0]
+                                                                        }, ignore_index=True)
+
+            elif operation.operation_type == 'Sell' and operation.status == "Done":
+                print(operation.operation_type)
+
+                operation_id.append(operation.id)
+                operation_type.append(operation.operation_type)
+                instrument_type.append(operation.instrument_type)  # Stock,
+                figi = operation.figi  # need to convert to ticker name
+                figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
+                ticker.append(figi_data.payload.ticker)  # store as ticker
+                currency.append(operation.currency)  # RUB, USD
+                price.append(operation.price)
+                quantity.append(operation.quantity)  # like amount
+                payment.append(operation.payment)  # like order price total
+                commission_data = operation.commission
+                if commission_data is not None:
+                    commission.append(commission_data.value)
+
+                # TODO keep same timeformat as usual
+                done_at_data = operation.trades
+
+                if done_at_data is not None:
+                    done_at.append((done_at_data[0].date).isoformat('T'))
+
+                created_at.append(operation.date.isoformat('T'))
+
+                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                                                                        "operation_type": operation_type[0],
+                                                                        "instrument_type": instrument_type[0],
+                                                                        "ticker": ticker[0],
+                                                                        "currency": currency[0],
+                                                                        "price": price[0],
+                                                                        "quantity": quantity[0],
+                                                                        "payment": payment[0],
+                                                                        "commission": commission[0],
+                                                                        "created_at": created_at[0],
+                                                                        "done_at": done_at[0]
+                                                                        }, ignore_index=True)
+            # dict_keys(['Sell', 'BrokerCommission', 'Buy', 'PayOut', 'PayIn', 'MarginCommission', 'Dividend', 'ServiceCommission'])
+            elif operation.operation_type == 'Dividend':
+                print(operation.operation_type)
+                operation_id.append(operation.id)
+                figi = operation.figi  # need to convert to ticker name
+                figi_data = client.market.market_search_by_figi_get(figi)
+                ticker.append(figi_data.payload.ticker)
+                currency.append(operation.currency)
+                operation_type.append(operation.operation_type)
+                payment.append(operation.payment)  # like order price total
+                done_at.append(operation.date.isoformat('T'))
+
+                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                                                                        "operation_type": operation_type[0],
+
+                                                                        "ticker": ticker[0],
+                                                                        "currency": currency[0],
+
+
+                                                                        "payment": payment[0],
+
+
+                                                                        "done_at": done_at[0]
+                                                                        }, ignore_index=True)
+            #
+            #
+            # elif operation.operation_type == 'ServiceCommission':
+            #     print(operation.operation_type)
+            #     operation_id.append(operation.id)
+            #     currency.append(operation.currency)
+            #     operation_type.append(operation.operation_type)
+            #     payment.append(operation.payment)  # like order price total
+            #     done_at.append(operation.date.isoformat('T'))
+            #
+            #
+            # elif operation.operation_type == 'MarginCommission':
+            #     print(operation.operation_type)
+            #     operation_id.append(operation.id)
+            #     currency.append(operation.currency)
+            #     operation_type.append(operation.operation_type)
+            #     payment.append(operation.payment)  # like order price total
+            #     done_at.append(operation.date.isoformat('T'))
+            #
+            # elif operation.operation_type == 'PayIn':
+            #     print(operation.operation_type)
+            #     operation_id.append(operation.id)
+            #     currency.append(operation.currency)
+            #     operation_type.append(operation.operation_type)
+            #     payment.append(operation.payment)  # like order price total
+            #     done_at.append(operation.date.isoformat('T'))
+            #
+            # elif operation.operation_type == 'PayOut':
+            #     print(operation.operation_type)
+            #     operation_id.append(operation.id)
+            #     currency.append(operation.currency)
+            #     operation_type.append(operation.operation_type)
+            #     payment.append(operation.payment)  # like order price total
+            #     done_at.append(operation.date.isoformat('T'))
+            #
+            # elif operation.operation_type == 'BrokerCommission':
+            #     print(operation.operation_type)
+            #     operation_id.append(operation.id)
+            #     figi = operation.figi  # need to convert to ticker name
+            #     figi_data = client.market.market_search_by_figi_get(figi)
+            #     ticker.append(figi_data.payload.ticker)
+            #     currency.append(operation.currency)
+            #     operation_type.append(operation.operation_type)
+            #     payment.append(operation.payment)  # like order price total
+            #     done_at.append(operation.date.isoformat('T'))
+
+
+
+
+
+
+        #print(all_operations_history_df.head)
+
+        all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
+        return True
+
+    elif not is_all_operations_history_exist(account_id):
+        print("new acc")
+        if create_operations_history_file(account_id):
+
+            list_of_operations = get_operations_data_from_broker(account_id)
+
+            for operation in list_of_operations:
+
+                if operation.operation_type == 'Buy' and operation.status == "Done":
+
+                    operation_id.append(operation.id)
+                    operation_type.append(operation.operation_type)
+                    instrument_type.append(operation.instrument_type)  # Stock,
+                    figi = operation.figi  # need to convert to ticker name
+                    figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
+                    ticker.append(figi_data.payload.ticker)  # store as ticker
+                    currency.append(operation.currency)  # RUB, USD
+                    price.append(operation.price)
+                    quantity.append(operation.quantity)  # like amount
+                    payment.append(operation.payment)  # like order price total
+                    commission_data = operation.commission
+                    if commission_data is not None:
+                        commission.append(commission_data.value)
+
+                    # TODO keep same timeformat as usual
+                    created_at_data = operation.trades
+                    if created_at_data is None:
+                        created_at.append((created_at_data[0].date).isoformat('T'))
+
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'Sell' and operation.status == "Done":
+                    print(operation.operation_type)
+
+                    operation_id.append(operation.id)
+                    operation_type.append(operation.operation_type)
+                    instrument_type.append(operation.instrument_type)  # Stock,
+                    figi = operation.figi  # need to convert to ticker name
+                    figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
+                    ticker.append(figi_data.payload.ticker)  # store as ticker
+                    currency.append(operation.currency)  # RUB, USD
+                    price.append(operation.price)
+                    quantity.append(operation.quantity)  # like amount
+                    payment.append(operation.payment)  # like order price total
+                    commission_data = operation.commission
+                    if commission_data is not None:
+                        commission.append(commission_data.value)
+
+                    # TODO keep same timeformat as usual
+                    created_at_data = operation.trades
+                    if created_at_data is None:
+                        created_at.append((created_at_data[0].date).isoformat('T'))
+
+                    done_at.append(operation.date.isoformat('T'))
+                # dict_keys(['Sell', 'BrokerCommission', 'Buy', 'PayOut', 'PayIn', 'MarginCommission', 'Dividend', 'ServiceCommission'])
+                elif operation.operation_type == 'Dividend':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    figi = operation.figi  # need to convert to ticker name
+                    figi_data = client.market.market_search_by_figi_get(figi)
+                    ticker.append(figi_data.payload.ticker)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'ServiceCommission':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'MarginCommission':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'PayIn':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'PayOut':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+                elif operation.operation_type == 'BrokerCommission':
+                    print(operation.operation_type)
+                    operation_id.append(operation.id)
+                    figi = operation.figi  # need to convert to ticker name
+                    figi_data = client.market.market_search_by_figi_get(figi)
+                    ticker.append(figi_data.payload.ticker)
+                    currency.append(operation.currency)
+                    operation_type.append(operation.operation_type)
+                    payment.append(operation.payment)  # like order price total
+                    done_at.append(operation.date.isoformat('T'))
+
+            data.update({"operation_id": operation_id,
+                         "operation_type": operation_type,
+                         "instrument_type": instrument_type,
+                         "ticker": ticker,
+                         "currency": currency,
+                         "price": price,
+                         "quantity": quantity,
+                         "payment": payment,
+                         "commission": commission,
+                         "created_at": created_at,
+                         "done_at": done_at
+                         })
+            print(data)
+            df = pd.DataFrame(data=data)
+            # all_operations_history = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+            df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
+            # check if order is write to the file
+            return True
+    else:
+        print("Something wrong, check: portfolio_current_add_order ")
+        return False
+
 
 class Account:
     """
@@ -518,4 +898,3 @@ class Account:
     def account_id(self, account_id):
         self.user_account_id = account_id
         return account_id
-

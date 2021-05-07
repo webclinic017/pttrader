@@ -4,9 +4,10 @@ import json
 import pandas as pd
 from pathlib import Path
 import os
-import time
-import datetime
+
 from dateutil import tz
+from openapi_client import openapi
+from datetime import datetime, timedelta
 
 
 def get_current_time():
@@ -15,7 +16,7 @@ def get_current_time():
     # current_time = pd.to_datetime(time_to_moscow)
 
     # for tinkoff_api only
-    d = datetime.datetime.utcnow()
+    d = datetime.utcnow()
     current_time = d.isoformat("T", timespec="seconds") + "+00:00"
 
     return current_time
@@ -232,7 +233,7 @@ def create_order_query(order_query):
 
         # check if order to sell already in order query
 
-        with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
+        with open("files/orders_query_" + str(user_id) + ".txt", "r") as file:
             data = file.read()
         new_order_list = json.loads(data)
         for order in new_order_list:
@@ -633,11 +634,11 @@ def create_orders_query(order_query):
     user_id = order_query[1]
     if Path("files").is_dir():
         # TODO add used)id to the end o
-        orders_query_data = Path("files/orders_query" + str(user_id) + ".txt")
+        orders_query_data = Path("files/orders_query_" + str(user_id) + ".txt")
         if orders_query_data.is_file():
             # file exists
             # add new order to local database
-            with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
+            with open("files/orders_query_" + str(user_id) + ".txt", "r") as file:
                 data = file.read()
             data = json.loads(data)
 
@@ -648,13 +649,13 @@ def create_orders_query(order_query):
                          "commission": order_query[11], "broker_commission": order_query[12],
                          "order_description": order_query[13],
                          })
-            with open("files/orders_query" + str(user_id) + ".txt", "w") as file:
+            with open("files/orders_query_" + str(user_id) + ".txt", "w") as file:
                 file.write(json.dumps(data, default=str))
 
             return True
 
-        elif Path("files").is_dir():
-            # add new order to local database
+        elif not orders_query_data.is_file():
+            # create new db and add new order to local database
 
             first_data = [{"order_type": order_query[0], "user_id": order_query[1], "ticker": order_query[2],
                            "order_price": order_query[3], "amount": order_query[4], "currency": order_query[5],
@@ -664,7 +665,7 @@ def create_orders_query(order_query):
                            "commission": order_query[11], "broker_commission": order_query[12],
                            "order_description": order_query[13],
                            }]
-            with open("files/orders_query" + str(user_id) + ".txt", "w+") as file:
+            with open("files/orders_query_" + str(user_id) + ".txt", "w+") as file:
                 file.write(json.dumps(first_data, default=str))
 
             return True
@@ -683,7 +684,7 @@ def create_orders_query(order_query):
                        "commission": order_query[11], "broker_commission": order_query[12],
                        "order_description": order_query[13],
                        }]
-        with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+        with open("files/orders_query_" + str(user_id) + ".txt", 'w+') as file:
             file.write(json.dumps(first_data))
 
         return True
@@ -705,7 +706,7 @@ def cancel_order_in_query(data):
     operation_id = data[0]
     user_id = data[1]
 
-    with open("files/orders_query" + str(user_id) + ".txt", "r") as file:
+    with open("files/orders_query_" + str(user_id) + ".txt", "r") as file:
         data = file.read()
     orders_query = json.loads(data)
 
@@ -732,7 +733,7 @@ def cancel_order_in_query(data):
                 wallet_history_dropped.to_csv("files/wallet_history_" + str(user_id) + ".csv", index=True)
                 # delete from order query
                 orders_query.remove(order)
-                with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+                with open("files/orders_query_" + str(user_id) + ".txt", 'w+') as file:
                     file.write(json.dumps(orders_query))
 
 
@@ -753,7 +754,7 @@ def cancel_order_in_query(data):
                 # delete from order query
                 orders_query.remove(order)
 
-                with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+                with open("files/orders_query_" + str(user_id) + ".txt", 'w+') as file:
                     file.write(json.dumps(orders_query))
 
                 return True
@@ -761,7 +762,7 @@ def cancel_order_in_query(data):
         # TODO for sell cancel if order was create before
         elif order["operation_id"] == operation_id and order["order_type"] == "Sell":
             orders_query.remove(order)
-            with open("files/orders_query" + str(user_id) + ".txt", 'w+') as file:
+            with open("files/orders_query_" + str(user_id) + ".txt", 'w+') as file:
                 file.write(json.dumps(orders_query))
             return True
 
@@ -775,15 +776,15 @@ def check_new_orders(account_id):
 
     """
     # check if not this location
-    orders_query_data = Path("files/orders_query" + str(account_id) + ".txt")
+    orders_query_data = Path("files/orders_query_" + str(account_id) + ".txt")
     if not orders_query_data.is_file():
         # add new order to local database
         first_data = []
-        with open("files/orders_query" + str(account_id) + ".txt", "w+") as file:
+        with open("files/orders_query_" + str(account_id) + ".txt", "w+") as file:
             file.write(json.dumps(first_data, default=str))
 
     # read local user db
-    with open("files/orders_query" + str(account_id) + ".txt", "r") as file:
+    with open("files/orders_query_" + str(account_id) + ".txt", "r") as file:
         data = file.read()
     new_order_list = json.loads(data)
     not_done_orders = []
@@ -802,7 +803,7 @@ def check_new_orders(account_id):
             order_data.update({"order_status": True})
             # remove done order from order_query
             new_order_list.remove(order_data)
-            with open("files/orders_query" + str(account_id) + ".txt", 'w+') as file:
+            with open("files/orders_query_" + str(account_id) + ".txt", 'w+') as file:
                 file.write(json.dumps(new_order_list))
             if order_data['order_type'] == "Buy" and order_data['instrument'] == "stocks":
 

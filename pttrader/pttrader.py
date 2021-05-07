@@ -16,7 +16,8 @@ from handlers_bot import (filter_text_input,
                           wallet_history,
                           ticker_data,
                           show_portfolio_current,
-                          cancel_order
+                          cancel_order,
+                          operations_sync
 
                           )
 
@@ -75,6 +76,9 @@ def main() -> None:
 
     cancel_order_in_query = CommandHandler('cancel', cancel_order)
     dispatcher.add_handler(cancel_order_in_query)
+
+    sync_data = CommandHandler('sync', operations_sync)
+    dispatcher.add_handler(sync_data)
 
     # bot's text handlers
     text_update_handler = MessageHandler(Filters.text, filter_text_input)
