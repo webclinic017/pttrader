@@ -453,7 +453,7 @@ def cancel_order(update: Update, context: CallbackContext):
                                   '\n Example: /cancel 123456')
 
 # commands for tinkoff API ank private key
-
+@run_async
 def operations_sync(update: Update, context: CallbackContext):
     """
     /sync
@@ -470,11 +470,10 @@ def operations_sync(update: Update, context: CallbackContext):
         # update data in local database
         # if database not exist, create new
         if trader.save_operations_to_history(usr_chat_id):
+            text_response = "Данные по операциям обновлены"
 
-            print("Данные истории операций обновлены")
-        else:
+            context.bot.send_message(usr_chat_id, text_response)
 
-            print(" Что то не так")
 
     except Exception as e :
         print(e)
