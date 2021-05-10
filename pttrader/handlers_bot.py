@@ -469,17 +469,25 @@ def operations_sync(update: Update, context: CallbackContext):
         # get operations data from real user brokers account
         # update data in local database
         # if database not exist, create new
-        response = [trader.save_operations_to_history(usr_chat_id)]
-        data = response[0]
-        if data[0]:
-            all_operations_num = data[1]
-            from_date = data[2]
-            to_date = data[3]
-            text_response = "Данные по " + str(all_operations_num) + " операциям, c " + str(from_date) + " по " +\
-                            str(to_date) + " обновлены."
+
+        if user_data.username == "mikhashev":
+            response = [trader.save_operations_to_history(usr_chat_id)]
+            data = response[0]
+            print(data)
+            if data[0] :
+                all_operations_num = data[1]
+                from_date = data[2]
+                to_date = data[3]
+                text_response = "Обновлено: " + str(all_operations_num) + ", c " + str(from_date) + " по " +\
+                                str(to_date)
+
+                context.bot.send_message(usr_chat_id, text_response)
+        else:
+
+            text_response = str(user_data.username) + ", у вас нет аккаунта Тинькофф Инвестиции для получения данных " \
+                                                      "по операциям "
 
             context.bot.send_message(usr_chat_id, text_response)
-
 
     except Exception as e :
         print(e)

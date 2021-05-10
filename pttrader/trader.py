@@ -563,6 +563,7 @@ def save_operations_to_history(account_id):
 
 
     if is_all_operations_history_exist(account_id):
+        print("History exist")
         all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
         # file exist, check last date and update
@@ -579,7 +580,6 @@ def save_operations_to_history(account_id):
             sleep(.5)
             count += 1
             print("Counter: ", count)
-
             operation_id = []
             operation_type = []  # Buy, Sell
             instrument_type = []  # Stock,
@@ -822,6 +822,8 @@ def save_operations_to_history(account_id):
         all_operations = len(list_of_operations)
 
         response = [True, all_operations, from_date, to_date]
+
+        return response
 
     elif not is_all_operations_history_exist(account_id):
         print("new acc")
@@ -1073,7 +1075,6 @@ def save_operations_to_history(account_id):
             all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
 
             all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
-
 
             from_index = (len(all_operations_history_updated) - 1)
             data = all_operations_history_updated.tail(1)
