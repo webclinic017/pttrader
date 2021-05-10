@@ -471,10 +471,12 @@ def operations_sync(update: Update, context: CallbackContext):
         # if database not exist, create new
 
         if user_data.username == "mikhashev":
-            # update portfolio from broker data (update to current date every time)
 
-            # update operations history available to current date from broker data
+            # update wallet data from broker account
+
+            # update portfolio from broker data (update to current date every time)
             trader.update_portfolio(usr_chat_id)
+            # update operations history available to current date from broker data
             # if already exist history file, update from last to current date
             response = [trader.save_operations_to_history(usr_chat_id)]
             data = response[0]

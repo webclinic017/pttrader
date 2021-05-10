@@ -11,14 +11,6 @@ import json
 
 # TODO get market data when market closed
 
-def tinkof_api_auth():
-    # authorisation
-    with open('data_for_tinkoff_api.txt', "r") as file:
-        token = file.read()
-    client = openapi.api_client(token)
-
-    return client
-
 def get_stock_data(order_data):
     """
 
@@ -47,7 +39,7 @@ def get_stock_data(order_data):
 
     if ticker == "USDRUB":
         ticker = "USD000UTSTOM"
-    client = tinkof_api_auth()
+    client = broker.tinkof_api_auth()
     stock_data = client.market.market_search_by_ticker_get(ticker)
 
     return stock_data
@@ -69,7 +61,7 @@ def get_ticker_price(order_data):
     """
     stock_data = get_stock_data(order_data)
     figi = stock_data.payload.instruments[0].figi
-    client = tinkof_api_auth()
+    client = broker.tinkof_api_auth()
 
     now = datetime.datetime.utcnow()
     created_at = now - datetime.timedelta(minutes=2)
@@ -329,7 +321,7 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
     currency = order_data["currency"]
     created_at_raw = order_data["created_at"]
     instrument = order_data['instrument']
-    client = tinkof_api_auth()
+    client = broker.tinkof_api_auth()
 
     created_at = created_at_raw.split(sep="+")[0]
     created_at += "Z"
@@ -546,14 +538,15 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
 
 
 def get_ticker_by(figi) -> str:
-    client = tinkof_api_auth()
+    client = broker.tinkof_api_auth()
 
     figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
     ticker = figi_data.payload.ticker
 
     return ticker
 
-def get_sector_by_ticker(ticker):
+
+def get_sector_by_ticker(ticker) -> str:
 
     sector = str()
     try:

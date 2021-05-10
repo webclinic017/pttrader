@@ -261,6 +261,12 @@ def is_wallet_history_exist(account_id):
         return False
 
 
+def wallet_update_from_broker(account_id):
+
+    pass
+
+
+
 # this functions for portfolio
 def portfolio_create_new(account_id):
     """
@@ -528,23 +534,6 @@ def create_operations_history_file(account_id):
         return False
 
 
-def get_operations_data_from_broker(account_id):
-    """
-    return list
-    """
-    # todo choose period
-    history_period = 10
-    now = datetime.now(tz=timezone('Europe/Moscow'))
-    yesterday = now - timedelta(days=history_period)
-    client = market.tinkof_api_auth()
-    ops = client.operations.operations_get(_from=yesterday.isoformat(), to=now.isoformat())
-    operations_data = ops.payload
-
-    with open("files/operations_data_" + str(account_id) + ".data", 'wb') as file:
-        # file.write(operations_data.operations)
-        pickle.dump(operations_data.operations, file)
-
-
 def check_last_date_in_operations_data(account_id):
     now = datetime.now(tz=timezone('Europe/Moscow'))
 
@@ -554,7 +543,7 @@ def check_last_date_in_operations_data(account_id):
 
 
 def save_operations_to_history(account_id):
-    client = market.tinkof_api_auth()
+    client = broker.tinkof_api_auth()
     # all_operations_history_df = pd.DataFrame(
     #     columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
     #              "quantity", "payment", "commission", "created_at", "done_at"
@@ -566,12 +555,10 @@ def save_operations_to_history(account_id):
         all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
         # file exist, check last date and update
-
+        history_period = 10# TODO need to calculate
         # update
-        get_operations_data_from_broker(account_id)
-        with open("files/operations_data_" + str(account_id) + ".data", "rb") as file:
-            list_of_operations = pickle.load(file)
-
+        list_of_operations = [broker.get_operations_data(history_period)]
+        list_of_operations = list_of_operations[0]
         print(type(list_of_operations))
         print(len(list_of_operations))
         count = 0
@@ -808,7 +795,7 @@ def save_operations_to_history(account_id):
 
         # print(all_operations_history_df.head)
         print("Save to csv with id: ", account_id)
-        all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
+        all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False, mode='w')
 
         all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
@@ -831,10 +818,10 @@ def save_operations_to_history(account_id):
             all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
             # list_of_operations.append(get_operations_data_from_broker(account_id))
-            get_operations_data_from_broker(account_id)
-            with open("files/operations_data_" + str(account_id) + ".data", "rb") as file:
-                list_of_operations = pickle.load(file)
-
+            # choose max period for first time run
+            history_period = 20000
+            list_of_operations = [broker.get_operations_data(history_period)]
+            list_of_operations = list_of_operations[0]
             print(type(list_of_operations))
             print(len(list_of_operations))
             count = 0
@@ -1090,14 +1077,6 @@ def save_operations_to_history(account_id):
         return False
 
 
-def get_portfolio_data_from_broker(account_id) -> list:
-    client = market.tinkof_api_auth()
-    portfolio = client.portfolio.portfolio_get()
-    positions = portfolio.payload
-
-    return positions.positions
-
-
 def update_portfolio(account_id):
     """
         This function creates two .csv files:
@@ -1119,7 +1098,7 @@ def update_portfolio(account_id):
     # currency = []
 
     # get current portfolio data from real broker
-    portfolio = get_portfolio_data_from_broker(account_id)
+    portfolio = broker.get_portfolio_data(account_id)
     portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
 
     for open_position in portfolio:
@@ -1153,6 +1132,7 @@ def update_portfolio(account_id):
     else:
         print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return False
+
 
 
 class Account:

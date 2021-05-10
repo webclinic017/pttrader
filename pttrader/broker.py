@@ -5,9 +5,19 @@ import pandas as pd
 from pathlib import Path
 import os
 
-from dateutil import tz
+
 from openapi_client import openapi
 from datetime import datetime, timedelta
+from pytz import timezone
+
+
+def tinkof_api_auth():
+    # authorisation
+    with open('data_for_tinkoff_api.txt', "r") as file:
+        token = file.read()
+    client = openapi.api_client(token)
+
+    return client
 
 
 def get_current_time():
@@ -239,7 +249,7 @@ def create_order_query(order_query):
         for order in new_order_list:
 
             if buy_operation_id == order['operation_id']:
-                text_response = "Ордер на продажу уже в очереди. Ждите его исполнения или отмените /cancel "+\
+                text_response = "Ордер на продажу уже в очереди. Ждите его исполнения или отмените /cancel " + \
                                 str(buy_operation_id)
                 response = [False, text_response]
 
@@ -736,8 +746,6 @@ def cancel_order_in_query(data):
                 with open("files/orders_query_" + str(user_id) + ".txt", 'w+') as file:
                     file.write(json.dumps(orders_query))
 
-
-
                 return True
 
             elif order["currency"] == "USD":
@@ -767,7 +775,6 @@ def cancel_order_in_query(data):
             return True
 
     return False
-
 
 
 def check_new_orders(account_id):
@@ -968,3 +975,31 @@ def check_new_orders(account_id):
 
     response = [False, order_data]
     return response
+
+def get_operations_data(history_period):
+    """
+    return list
+    """
+    # todo choose period
+
+    now = datetime.now(tz=timezone('Europe/Moscow'))
+    yesterday = now - timedelta(days=history_period)
+    client = tinkof_api_auth()
+    ops = client.operations.operations_get(_from=yesterday.isoformat(), to=now.isoformat())
+    operations_data = ops.payload
+
+    return operations_data.operations
+
+
+def get_portfolio_data(account_id) -> list:
+    client = tinkof_api_auth()
+    portfolio = client.portfolio.portfolio_get()
+    positions = portfolio.payload
+
+    return positions.positions
+
+def get_portfolio_currencies(account_id):
+    client = tinkof_api_auth()
+
+    portfolio_data = client.portfolio.portfolio_currencies_get()
+    portfolio_data.payload
