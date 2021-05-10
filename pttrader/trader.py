@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 pd.set_option('display.max_columns', None)
 import pickle
 
+
 def get_random_id():
     """
     random id generator foo for store same condition at one place
@@ -532,50 +533,53 @@ def get_operations_data_from_broker(account_id):
     return list
     """
     # todo choose period
-    history_period = 1000
+    history_period = 10
     now = datetime.now(tz=timezone('Europe/Moscow'))
     yesterday = now - timedelta(days=history_period)
     client = market.tinkof_api_auth()
     ops = client.operations.operations_get(_from=yesterday.isoformat(), to=now.isoformat())
     operations_data = ops.payload
 
-
-
     with open("files/operations_data_" + str(account_id) + ".data", 'wb') as file:
-        #file.write(operations_data.operations)
+        # file.write(operations_data.operations)
         pickle.dump(operations_data.operations, file)
 
 
+def check_last_date_in_operations_data(account_id):
+    now = datetime.now(tz=timezone('Europe/Moscow'))
+
+    current_data = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
     return True
 
 
 def save_operations_to_history(account_id):
-
-
     client = market.tinkof_api_auth()
-    all_operations_history_df = pd.DataFrame(
-        columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
-                 "quantity", "payment", "commission", "created_at", "done_at"
-                 ])
+    # all_operations_history_df = pd.DataFrame(
+    #     columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
+    #              "quantity", "payment", "commission", "created_at", "done_at"
+    #              ])
     # if already exist history - > rewrite
 
-    count = 0
+
     if is_all_operations_history_exist(account_id):
-        list_of_operations = {}
-        #list_of_operations.append(get_operations_data_from_broker(account_id))
+        all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+
+        # file exist, check last date and update
+
+        # update
         get_operations_data_from_broker(account_id)
         with open("files/operations_data_" + str(account_id) + ".data", "rb") as file:
             list_of_operations = pickle.load(file)
 
         print(type(list_of_operations))
         print(len(list_of_operations))
-        account_id = 0
+        count = 0
         for operation in list_of_operations:
             sleep(.5)
             count += 1
-            print("Counter: ",count)
-            print(operation)
+            print("Counter: ", count)
+
             operation_id = []
             operation_type = []  # Buy, Sell
             instrument_type = []  # Stock,
@@ -616,7 +620,6 @@ def save_operations_to_history(account_id):
                 elif done_at_data is None:
                     done_at.append((operation.date).isoformat('T'))
 
-
                 created_at.append(operation.date.isoformat('T'))
                 # print("Counter:", count)
                 # print(operation_id)
@@ -633,17 +636,17 @@ def save_operations_to_history(account_id):
                 # print(done_at)
 
                 all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
-                                                                        "operation_type": operation_type[0],
-                                                                        "instrument_type": instrument_type[0],
-                                                                        "ticker": ticker[0],
-                                                                        "currency": currency[0],
-                                                                        "price": price[0],
-                                                                        "quantity": quantity[0],
-                                                                        "payment": payment[0],
-                                                                        "commission": commission[0],
-                                                                        "created_at": created_at[0],
-                                                                        "done_at": done_at[0]
-                                                                        }, ignore_index=True)
+                                                                              "operation_type": operation_type[0],
+                                                                              "instrument_type": instrument_type[0],
+                                                                              "ticker": ticker[0],
+                                                                              "currency": currency[0],
+                                                                              "price": price[0],
+                                                                              "quantity": quantity[0],
+                                                                              "payment": payment[0],
+                                                                              "commission": commission[0],
+                                                                              "created_at": created_at[0],
+                                                                              "done_at": done_at[0]
+                                                                              }, ignore_index=True)
 
             elif operation.operation_type == 'Sell' and operation.status == "Done":
                 print(operation.operation_type)
@@ -674,17 +677,17 @@ def save_operations_to_history(account_id):
                 created_at.append(operation.date.isoformat('T'))
 
                 all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
-                                                                        "operation_type": operation_type[0],
-                                                                        "instrument_type": instrument_type[0],
-                                                                        "ticker": ticker[0],
-                                                                        "currency": currency[0],
-                                                                        "price": price[0],
-                                                                        "quantity": quantity[0],
-                                                                        "payment": payment[0],
-                                                                        "commission": commission[0],
-                                                                        "created_at": created_at[0],
-                                                                        "done_at": done_at[0]
-                                                                        }, ignore_index=True)
+                                                                              "operation_type": operation_type[0],
+                                                                              "instrument_type": instrument_type[0],
+                                                                              "ticker": ticker[0],
+                                                                              "currency": currency[0],
+                                                                              "price": price[0],
+                                                                              "quantity": quantity[0],
+                                                                              "payment": payment[0],
+                                                                              "commission": commission[0],
+                                                                              "created_at": created_at[0],
+                                                                              "done_at": done_at[0]
+                                                                              }, ignore_index=True)
             # dict_keys(['Sell', 'BrokerCommission', 'Buy', 'PayOut', 'PayIn', 'MarginCommission', 'Dividend', 'ServiceCommission'])
             elif operation.operation_type == 'Dividend':
                 print(operation.operation_type)
@@ -698,17 +701,15 @@ def save_operations_to_history(account_id):
                 done_at.append(operation.date.isoformat('T'))
 
                 all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
-                                                                        "operation_type": operation_type[0],
+                                                                              "operation_type": operation_type[0],
 
-                                                                        "ticker": ticker[0],
-                                                                        "currency": currency[0],
+                                                                              "ticker": ticker[0],
+                                                                              "currency": currency[0],
 
+                                                                              "payment": payment[0],
 
-                                                                        "payment": payment[0],
-
-
-                                                                        "done_at": done_at[0]
-                                                                        }, ignore_index=True)
+                                                                              "done_at": done_at[0]
+                                                                              }, ignore_index=True)
             #
             #
             elif operation.operation_type == 'ServiceCommission':
@@ -719,19 +720,15 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-
                 all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
-                                                                        "operation_type": operation_type[0],
+                                                                              "operation_type": operation_type[0],
 
+                                                                              "currency": currency[0],
 
-                                                                        "currency": currency[0],
+                                                                              "payment": payment[0],
 
-
-                                                                        "payment": payment[0],
-
-
-                                                                        "done_at": done_at[0]
-                                                                        }, ignore_index=True)
+                                                                              "done_at": done_at[0]
+                                                                              }, ignore_index=True)
             #
             #
             elif operation.operation_type == 'MarginCommission':
@@ -800,31 +797,37 @@ def save_operations_to_history(account_id):
                 done_at.append(operation.date.isoformat('T'))
 
                 all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
-                                                                        "operation_type": operation_type[0],
+                                                                              "operation_type": operation_type[0],
 
-                                                                        "ticker": ticker[0],
-                                                                        "currency": currency[0],
+                                                                              "ticker": ticker[0],
+                                                                              "currency": currency[0],
 
+                                                                              "payment": payment[0],
 
-                                                                        "payment": payment[0],
+                                                                              "done_at": done_at[0]
+                                                                              }, ignore_index=True)
 
-
-                                                                        "done_at": done_at[0]
-                                                                        }, ignore_index=True)
-
-
-
-
-
-
-        #print(all_operations_history_df.head)
-
+        # print(all_operations_history_df.head)
+        print("Save to csv with id: ", account_id)
         all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
-        return True
+
+        all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+
+        from_index = (len(all_operations_history_updated) - 1)
+        data = all_operations_history_updated.tail(1)
+        from_date = (data["done_at"][from_index])
+
+        data = all_operations_history_updated.head(1)
+        to_date = (data["done_at"][0])
+        all_operations = len(list_of_operations)
+
+        response = [True, all_operations, from_date, to_date]
 
     elif not is_all_operations_history_exist(account_id):
         print("new acc")
         if create_operations_history_file(account_id):
+
+            all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
             # list_of_operations.append(get_operations_data_from_broker(account_id))
             get_operations_data_from_broker(account_id)
@@ -833,12 +836,12 @@ def save_operations_to_history(account_id):
 
             print(type(list_of_operations))
             print(len(list_of_operations))
-            account_id = 0
+            count = 0
             for operation in list_of_operations:
                 sleep(.5)
                 count += 1
                 print("Counter: ", count)
-                print(operation)
+
                 operation_id = []
                 operation_type = []  # Buy, Sell
                 instrument_type = []  # Stock,
@@ -969,8 +972,7 @@ def save_operations_to_history(account_id):
 
                                                                                   "done_at": done_at[0]
                                                                                   }, ignore_index=True)
-                #
-                #
+
                 elif operation.operation_type == 'ServiceCommission':
                     print(operation.operation_type)
                     operation_id.append(operation.id)
@@ -988,8 +990,8 @@ def save_operations_to_history(account_id):
 
                                                                                   "done_at": done_at[0]
                                                                                   }, ignore_index=True)
-                #
-                #
+
+
                 elif operation.operation_type == 'MarginCommission':
                     print(operation.operation_type)
                     operation_id.append(operation.id)
@@ -1067,9 +1069,22 @@ def save_operations_to_history(account_id):
                                                                                   }, ignore_index=True)
 
             # print(all_operations_history_df.head)
-
+            print("Account id:", account_id)
             all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
-            return True
+
+            all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+
+
+            from_index = (len(all_operations_history_updated) - 1)
+            data = all_operations_history_updated.tail(1)
+            from_date = (data["done_at"][from_index])
+
+            data = all_operations_history_updated.head(1)
+            to_date = (data["done_at"][0])
+            all_operations = len(list_of_operations)
+
+            response = [True, all_operations, from_date, to_date]
+            return response  # dates from xxx to xxx
     else:
         print("Something wrong, check: portfolio_current_add_order ")
         return False
