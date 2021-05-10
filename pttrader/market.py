@@ -5,6 +5,9 @@ import pandas as pd
 from openapi_client import openapi
 import datetime
 import sys
+import urllib
+from urllib.request import urlopen
+import json
 
 # TODO get market data when market closed
 
@@ -542,5 +545,31 @@ def get_ticker_historical_data_from_tinkoff_api(order_data):
         return False
 
 
+def get_ticker_by(figi) -> str:
+    client = tinkof_api_auth()
 
+    figi_data = client.market.market_search_by_figi_get(figi)  # get ticker by figi
+    ticker = figi_data.payload.ticker
+
+    return ticker
+
+def get_sector_by_ticker(ticker):
+
+    sector = str()
+    try:
+        dataLink = 'https://api-invest.tinkoff.ru/trading/stocks/get?ticker=' + ticker
+        data = urllib.request.urlopen(dataLink)
+        data = data.read().decode("utf-8")
+        data = json.loads(data)
+
+        data2 = data['payload']
+
+        data3 = data2["symbol"]
+        sector += data3["sector"]
+
+        return sector
+
+    except Exception as e:
+        print(e)
+        return sector
 

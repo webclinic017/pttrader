@@ -561,7 +561,6 @@ def save_operations_to_history(account_id):
     #              ])
     # if already exist history - > rewrite
 
-
     if is_all_operations_history_exist(account_id):
         print("History exist")
         all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
@@ -1088,6 +1087,71 @@ def save_operations_to_history(account_id):
             return response  # dates from xxx to xxx
     else:
         print("Something wrong, check: portfolio_current_add_order ")
+        return False
+
+
+def get_portfolio_data_from_broker(account_id) -> list:
+    client = market.tinkof_api_auth()
+    portfolio = client.portfolio.portfolio_get()
+    positions = portfolio.payload
+
+    return positions.positions
+
+
+def update_portfolio(account_id):
+    """
+        This function creates two .csv files:
+        first for storing portfolio operations history
+        and second for current portfolio state
+        """
+    portfolio_current_df = pd.DataFrame(columns=["sector", "instrument_type", "ticker", "balance", "lots",
+                                                 "average_position_price",
+                                                 "currency",
+                                                 ])
+    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+
+    # sector = []
+    # instrument_type = []
+    # ticker = []
+    # balance = []
+    # lots = []
+    # average_position_price = []
+    # currency = []
+
+    # get current portfolio data from real broker
+    portfolio = get_portfolio_data_from_broker(account_id)
+    portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
+
+    for open_position in portfolio:
+        figi = open_position.figi
+        # figi_to_ticker
+        ticker = market.get_ticker_by(figi)
+        # after obtain ticker by figi we try to get sector
+        sector = market.get_sector_by_ticker(ticker)
+        instrument_type = open_position.instrument_type
+        lots = open_position.lots
+        average_position_price = open_position.average_position_price.value
+        currency = open_position.average_position_price.currency
+        balance = open_position.balance
+        # blocked
+        # expected_yield
+
+        portfolio_current_df = portfolio_current_df.append({"sector": sector,
+                                                            "instrument_type": instrument_type,
+                                                            "ticker": ticker,
+                                                            "balance": balance,
+                                                            "lots": lots,
+                                                            "average_position_price": average_position_price,
+                                                            "currency": currency,
+
+                                                            }, ignore_index=True)
+
+    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+    print("Portfolio updated")
+    if is_portfolio_current_exist(account_id):
+        return True
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
         return False
 
 
