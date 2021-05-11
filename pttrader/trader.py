@@ -261,10 +261,48 @@ def is_wallet_history_exist(account_id):
         return False
 
 
-def wallet_update_from_broker(account_id):
+def update_wallet(account_id):
 
-    pass
+    all_currencies = broker.get_portfolio_currencies(account_id)
+    balance_rub = float()
+    for currency in all_currencies:
 
+        if currency.currency == "EUR":
+            # passed because we have in portfolio data with already
+
+            # TODO use this in future dev pipeline
+            #balance_eur = currency.balance
+            # blocked_eur = currency.blocked
+            pass
+
+        elif currency.currency == "USD":
+            # passed because we have in portfolio data with already
+            # TODO use this in future dev pipeline
+            # balance_usd= currency.balance
+            # blocked_usd = currency.blocked
+            pass
+
+        elif currency.currency == "RUB":
+
+            balance_rub = currency.balance
+            # TODO use this in future dev pipeline
+            # blocked_rub = currency.blocked
+
+
+
+    if is_wallet_current_exist(account_id):
+
+        wallet_current_data = wallet_show_current(account_id)
+
+        wallet_current_data["RUB"] = balance_rub
+        # write new data to wallet_current
+        with open("files/wallet_current_" + str(account_id) + ".txt", 'w') as file:
+            file.write(json.dumps(wallet_current_data))
+
+        return True
+    else:
+
+        return False
 
 
 # this functions for portfolio
@@ -503,6 +541,62 @@ def portfolio_move_from_current(order_data):
         print(" data not found")
         return False
 
+def update_portfolio(account_id):
+    """
+        This function creates two .csv files:
+        first for storing portfolio operations history
+        and second for current portfolio state
+        """
+    portfolio_current_df = pd.DataFrame(columns=["sector", "instrument_type", "ticker", "balance", "lots",
+                                                 "average_position_price",
+                                                 "currency",
+                                                 ])
+    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+
+    # sector = []
+    # instrument_type = []
+    # ticker = []
+    # balance = []
+    # lots = []
+    # average_position_price = []
+    # currency = []
+
+    # get current portfolio data from real broker
+    portfolio = broker.get_portfolio_data(account_id)
+    portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
+
+    for open_position in portfolio:
+        figi = open_position.figi
+        # figi_to_ticker
+        ticker = market.get_ticker_by(figi)
+        # after obtain ticker by figi we try to get sector
+        sector = market.get_sector_by_ticker(ticker)
+        instrument_type = open_position.instrument_type
+        lots = open_position.lots
+        average_position_price = open_position.average_position_price.value
+        currency = open_position.average_position_price.currency
+        balance = open_position.balance
+        # blocked
+        # expected_yield
+
+        portfolio_current_df = portfolio_current_df.append({"sector": sector,
+                                                            "instrument_type": instrument_type,
+                                                            "ticker": ticker,
+                                                            "balance": balance,
+                                                            "lots": lots,
+                                                            "average_position_price": average_position_price,
+                                                            "currency": currency,
+
+                                                            }, ignore_index=True)
+
+    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+    print("Portfolio updated")
+    if is_portfolio_current_exist(account_id):
+        return True
+    else:
+        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
+        return False
+
 
 def is_all_operations_history_exist(account_id):
     operations_data = Path("files/all_operations_history_" + str(account_id) + ".csv")
@@ -534,17 +628,24 @@ def create_operations_history_file(account_id):
         return False
 
 
-def check_last_date_in_operations_data(account_id):
+def get_history_period_to_update(account_id):
     now = datetime.now(tz=timezone('Europe/Moscow'))
 
-    current_data = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+    current_operations_history_data = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
-    return True
+    data = current_operations_history_data.head(1)
+    last_date = (data["done_at"][0])
+    last_date = pd.datetime.fromisoformat(last_date)
+    print("date from csv: ",last_date)
+
+    history_period_to_update = now - last_date
+
+    return history_period_to_update.days
 
 
 def save_operations_to_history(account_id):
     client = broker.tinkof_api_auth()
-    # all_operations_history_df = pd.DataFrame(
+    # new_operations_history_df = pd.DataFrame(
     #     columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
     #              "quantity", "payment", "commission", "created_at", "done_at"
     #              ])
@@ -552,10 +653,16 @@ def save_operations_to_history(account_id):
 
     if is_all_operations_history_exist(account_id):
         print("History exist")
-        all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
-        # file exist, check last date and update
-        history_period = 10# TODO need to calculate
+
+        # TODO if file exist, check last date and updatewith function check_last . . .
+
+        history_period = get_history_period_to_update(account_id)# TODO need to calculate
+        new_operations_history_df = pd.DataFrame(
+            columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
+                     "quantity", "payment", "commission", "created_at", "done_at"
+                     ])
+        print("Hist period", history_period)
         # update
         list_of_operations = [broker.get_operations_data(history_period)]
         list_of_operations = list_of_operations[0]
@@ -621,7 +728,7 @@ def save_operations_to_history(account_id):
                 # print(created_at)
                 # print(done_at)
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
                                                                               "instrument_type": instrument_type[0],
                                                                               "ticker": ticker[0],
@@ -662,7 +769,7 @@ def save_operations_to_history(account_id):
 
                 created_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
                                                                               "instrument_type": instrument_type[0],
                                                                               "ticker": ticker[0],
@@ -686,7 +793,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "ticker": ticker[0],
@@ -696,8 +803,7 @@ def save_operations_to_history(account_id):
 
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
-            #
-            #
+
             elif operation.operation_type == 'ServiceCommission':
                 print(operation.operation_type)
                 operation_id.append(operation.id)
@@ -706,7 +812,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "currency": currency[0],
@@ -715,8 +821,7 @@ def save_operations_to_history(account_id):
 
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
-            #
-            #
+
             elif operation.operation_type == 'MarginCommission':
                 print(operation.operation_type)
                 operation_id.append(operation.id)
@@ -725,7 +830,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "currency": currency[0],
@@ -734,7 +839,7 @@ def save_operations_to_history(account_id):
 
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
-            #
+
             elif operation.operation_type == 'PayIn':
                 print(operation.operation_type)
                 operation_id.append(operation.id)
@@ -743,7 +848,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "currency": currency[0],
@@ -752,7 +857,7 @@ def save_operations_to_history(account_id):
 
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
-            #
+
             elif operation.operation_type == 'PayOut':
                 print(operation.operation_type)
                 operation_id.append(operation.id)
@@ -761,7 +866,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "currency": currency[0],
@@ -770,7 +875,7 @@ def save_operations_to_history(account_id):
 
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
-            #
+
             elif operation.operation_type == 'BrokerCommission':
                 print(operation.operation_type)
                 operation_id.append(operation.id)
@@ -782,7 +887,7 @@ def save_operations_to_history(account_id):
                 payment.append(operation.payment)  # like order price total
                 done_at.append(operation.date.isoformat('T'))
 
-                all_operations_history_df = all_operations_history_df.append({"operation_id": operation_id[0],
+                new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
 
                                                                               "ticker": ticker[0],
@@ -793,31 +898,42 @@ def save_operations_to_history(account_id):
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
 
-        # print(all_operations_history_df.head)
-        print("Save to csv with id: ", account_id)
-        all_operations_history_df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False, mode='w')
+        all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
-        all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+        df = pd.concat([new_operations_history_df, all_operations_history_df], ignore_index=True)
+        #if history_period != int(0):
+        # check for duplicates in new data
+        duplicates_in_df = df[df.duplicated(['operation_id'])]
+        print("Duplicates in new data: ", duplicates_in_df, sep='\n')
 
-        from_index = (len(all_operations_history_updated) - 1)
-        data = all_operations_history_updated.tail(1)
-        from_date = (data["done_at"][from_index])
+        if len(duplicates_in_df.index) == 0 :
 
-        data = all_operations_history_updated.head(1)
-        to_date = (data["done_at"][0])
-        all_operations = len(list_of_operations)
+            print("Save to csv with id: ", account_id)
+            df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False, mode='w')
 
-        response = [True, all_operations, from_date, to_date]
+            all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
-        return response
+            from_index = (len(all_operations_history_updated) - 1)
+            data = all_operations_history_updated.tail(1)
+            from_date = (data["done_at"][from_index])
 
+            data = all_operations_history_updated.head(1)
+            to_date = (data["done_at"][0])
+            all_operations = len(list_of_operations)
+
+            response = [True, all_operations, from_date, to_date]
+
+            return response
+        else:
+
+            response = [False, 0, 0, 0]
+
+            return response
     elif not is_all_operations_history_exist(account_id):
-        print("new acc")
+        print("History not exist")
         if create_operations_history_file(account_id):
 
-            all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
-            # list_of_operations.append(get_operations_data_from_broker(account_id))
             # choose max period for first time run
             history_period = 20000
             list_of_operations = [broker.get_operations_data(history_period)]
@@ -1075,65 +1191,6 @@ def save_operations_to_history(account_id):
     else:
         print("Something wrong, check: portfolio_current_add_order ")
         return False
-
-
-def update_portfolio(account_id):
-    """
-        This function creates two .csv files:
-        first for storing portfolio operations history
-        and second for current portfolio state
-        """
-    portfolio_current_df = pd.DataFrame(columns=["sector", "instrument_type", "ticker", "balance", "lots",
-                                                 "average_position_price",
-                                                 "currency",
-                                                 ])
-    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
-
-    # sector = []
-    # instrument_type = []
-    # ticker = []
-    # balance = []
-    # lots = []
-    # average_position_price = []
-    # currency = []
-
-    # get current portfolio data from real broker
-    portfolio = broker.get_portfolio_data(account_id)
-    portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
-
-    for open_position in portfolio:
-        figi = open_position.figi
-        # figi_to_ticker
-        ticker = market.get_ticker_by(figi)
-        # after obtain ticker by figi we try to get sector
-        sector = market.get_sector_by_ticker(ticker)
-        instrument_type = open_position.instrument_type
-        lots = open_position.lots
-        average_position_price = open_position.average_position_price.value
-        currency = open_position.average_position_price.currency
-        balance = open_position.balance
-        # blocked
-        # expected_yield
-
-        portfolio_current_df = portfolio_current_df.append({"sector": sector,
-                                                            "instrument_type": instrument_type,
-                                                            "ticker": ticker,
-                                                            "balance": balance,
-                                                            "lots": lots,
-                                                            "average_position_price": average_position_price,
-                                                            "currency": currency,
-
-                                                            }, ignore_index=True)
-
-    portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
-    print("Portfolio updated")
-    if is_portfolio_current_exist(account_id):
-        return True
-    else:
-        print("Something goes wrong, check function", sys._getframe().f_code.co_name)
-        return False
-
-
 
 class Account:
     """

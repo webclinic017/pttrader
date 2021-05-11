@@ -2,7 +2,6 @@
 import yfinance as yf
 import broker
 import pandas as pd
-from openapi_client import openapi
 import datetime
 import sys
 import urllib

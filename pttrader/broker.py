@@ -998,8 +998,10 @@ def get_portfolio_data(account_id) -> list:
 
     return positions.positions
 
-def get_portfolio_currencies(account_id):
+def get_portfolio_currencies(account_id) -> list:
     client = tinkof_api_auth()
 
     portfolio_data = client.portfolio.portfolio_currencies_get()
-    portfolio_data.payload
+    all_currencies_data = portfolio_data.payload.currencies
+
+    return all_currencies_data

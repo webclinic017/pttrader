@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
-import reply_markups as rm
+
 
 
 # # start logging to the file of current directory or º it to console
@@ -70,15 +70,7 @@ def text_simple(usr_msg_text):
 
     if "⬅ page 1".upper() == usr_msg_text:
         menu_text_response = 'page 1'
-        reply_markup_response = rm.reply_markup_p1
 
-    elif "page 2 ➡".upper() == usr_msg_text or '⬅ page 2'.upper() in usr_msg_text:
-        menu_text_response = 'page 2'
-        reply_markup_response = rm.reply_markup_p2
-
-    elif "page 3 ➡".upper() == usr_msg_text:
-        menu_text_response = 'page 3'
-        reply_markup_response = rm.reply_markup_p3
 
     elif "buyew".upper() == usr_msg_text:
         pass
