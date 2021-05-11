@@ -15,7 +15,6 @@ import fileinput
 pd.set_option('display.max_columns', None)
 
 
-
 def get_random_id():
     """
     random id generator foo for store same condition at one place
@@ -547,8 +546,8 @@ def update_portfolio(account_id):
         and second for current portfolio state
         """
     portfolio_current_df = pd.DataFrame(columns=["sector", "instrument_type", "ticker", "balance", "lots",
-                                                 "average_position_price",
-                                                 "currency",
+                                                 "average_position_price", "total",
+                                                 "currency", "weight",
                                                  ])
     portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
@@ -558,11 +557,33 @@ def update_portfolio(account_id):
     # balance = []
     # lots = []
     # average_position_price = []
+    # total = []
     # currency = []
+    deposit_money = float()
 
     # get current portfolio data from real broker
     portfolio = broker.get_portfolio_data(account_id)
     portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
+
+    for open_position in portfolio:
+
+
+        figi = open_position.figi
+        # figi_to_ticker
+        ticker = market.get_ticker_by(figi)
+        # after obtain ticker by figi we try to get sector
+        sector = market.get_sector_by_ticker(ticker)
+        instrument_type = open_position.instrument_type
+        balance = open_position.balance
+        lots = open_position.lots
+        average_position_price = open_position.average_position_price.value
+        currency = open_position.average_position_price.currency
+        total = average_position_price * balance
+
+
+        deposit_money += total
+        # blocked
+        # expected_yield
 
     for open_position in portfolio:
         figi = open_position.figi
@@ -571,10 +592,18 @@ def update_portfolio(account_id):
         # after obtain ticker by figi we try to get sector
         sector = market.get_sector_by_ticker(ticker)
         instrument_type = open_position.instrument_type
+        balance = open_position.balance
         lots = open_position.lots
         average_position_price = open_position.average_position_price.value
         currency = open_position.average_position_price.currency
-        balance = open_position.balance
+        total = average_position_price * balance
+        wallet_show_current(account_id)
+
+        wallet_current_data = wallet_show_current(account_id)
+
+        balance_rub = wallet_current_data["RUB"]
+
+        weight = round((total / (deposit_money + balance_rub)) * 100,2)
         # blocked
         # expected_yield
 
@@ -584,11 +613,20 @@ def update_portfolio(account_id):
                                                             "balance": balance,
                                                             "lots": lots,
                                                             "average_position_price": average_position_price,
+                                                            "total": total,
                                                             "currency": currency,
+                                                            "weight": str(weight)+"%",
+
 
                                                             }, ignore_index=True)
 
+
+
+
+
     portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
+
+
     print("Portfolio updated")
     if is_portfolio_current_exist(account_id):
         return True
@@ -713,19 +751,6 @@ def save_operations_to_history(account_id):
                     done_at.append((operation.date).isoformat('T'))
 
                 created_at.append(operation.date.isoformat('T'))
-                # print("Counter:", count)
-                # print(operation_id)
-                # print(operation_type)  # Buy, Sell
-                # print(instrument_type)  # Stock,
-                #
-                # print(ticker) # store as ticker
-                # print(currency)  # RUB, USD
-                # print(price)
-                # print(quantity)  # like amount
-                # print(payment)  # like order price total
-                # print(commission)
-                # print(created_at)
-                # print(done_at)
 
                 new_operations_history_df = new_operations_history_df.append({"operation_id": operation_id[0],
                                                                               "operation_type": operation_type[0],
@@ -897,9 +922,8 @@ def save_operations_to_history(account_id):
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
 
-
         all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
-        all_operations_history_df.info()
+
         df_1 = pd.concat([new_operations_history_df, all_operations_history_df])
 
         df_1.drop_duplicates(keep='last', inplace=True)
@@ -934,7 +958,7 @@ def save_operations_to_history(account_id):
 
             all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
             # choose max period for first time run
-            days =20000
+            days = 20000
             now = datetime.now(tz=timezone('Europe/Moscow'))
             history_period = now - timedelta(days=days)
             list_of_operations = [broker.get_operations_data(history_period)]
