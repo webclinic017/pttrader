@@ -983,9 +983,9 @@ def get_operations_data(history_period):
     # todo choose period
 
     now = datetime.now(tz=timezone('Europe/Moscow'))
-    yesterday = now - timedelta(days=history_period)
+
     client = tinkof_api_auth()
-    ops = client.operations.operations_get(_from=yesterday.isoformat(), to=now.isoformat())
+    ops = client.operations.operations_get(_from=history_period.isoformat(), to=now.isoformat())
     operations_data = ops.payload
 
     return operations_data.operations

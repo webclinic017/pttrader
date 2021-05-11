@@ -8,11 +8,12 @@ import market
 from time import sleep
 
 from pytz import timezone
-from openapi_client import openapi
+
 from datetime import datetime, timedelta
+import fileinput
 
 pd.set_option('display.max_columns', None)
-import pickle
+
 
 
 def get_random_id():
@@ -262,7 +263,6 @@ def is_wallet_history_exist(account_id):
 
 
 def update_wallet(account_id):
-
     all_currencies = broker.get_portfolio_currencies(account_id)
     balance_rub = float()
     for currency in all_currencies:
@@ -271,7 +271,7 @@ def update_wallet(account_id):
             # passed because we have in portfolio data with already
 
             # TODO use this in future dev pipeline
-            #balance_eur = currency.balance
+            # balance_eur = currency.balance
             # blocked_eur = currency.blocked
             pass
 
@@ -287,8 +287,6 @@ def update_wallet(account_id):
             balance_rub = currency.balance
             # TODO use this in future dev pipeline
             # blocked_rub = currency.blocked
-
-
 
     if is_wallet_current_exist(account_id):
 
@@ -541,6 +539,7 @@ def portfolio_move_from_current(order_data):
         print(" data not found")
         return False
 
+
 def update_portfolio(account_id):
     """
         This function creates two .csv files:
@@ -636,11 +635,11 @@ def get_history_period_to_update(account_id):
     data = current_operations_history_data.head(1)
     last_date = (data["done_at"][0])
     last_date = pd.datetime.fromisoformat(last_date)
-    print("date from csv: ",last_date)
+    print("date from csv: ", last_date)
 
     history_period_to_update = now - last_date
 
-    return history_period_to_update.days
+    return last_date
 
 
 def save_operations_to_history(account_id):
@@ -654,16 +653,16 @@ def save_operations_to_history(account_id):
     if is_all_operations_history_exist(account_id):
         print("History exist")
 
-
         # TODO if file exist, check last date and updatewith function check_last . . .
 
-        history_period = get_history_period_to_update(account_id)# TODO need to calculate
+        history_period = get_history_period_to_update(account_id)  # TODO need to calculate
         new_operations_history_df = pd.DataFrame(
             columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
                      "quantity", "payment", "commission", "created_at", "done_at"
                      ])
-        print("Hist period", history_period)
+
         # update
+        print("Hist period", history_period)
         list_of_operations = [broker.get_operations_data(history_period)]
         list_of_operations = list_of_operations[0]
         print(type(list_of_operations))
@@ -898,19 +897,19 @@ def save_operations_to_history(account_id):
                                                                               "done_at": done_at[0]
                                                                               }, ignore_index=True)
 
+
         all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
+        all_operations_history_df.info()
+        df_1 = pd.concat([new_operations_history_df, all_operations_history_df])
 
-        df = pd.concat([new_operations_history_df, all_operations_history_df], ignore_index=True)
-        #if history_period != int(0):
-        # check for duplicates in new data
-        duplicates_in_df = df[df.duplicated(['operation_id'])]
-        print("Duplicates in new data: ", duplicates_in_df, sep='\n')
+        df_1.drop_duplicates(keep='last', inplace=True)
+        check_duplicates = df_1[df_1.duplicated()]
 
-        if len(duplicates_in_df.index) == 0 :
-
+        if len(check_duplicates.index) == 0:
             print("Save to csv with id: ", account_id)
-            df.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False, mode='w')
 
+            df_1.to_csv("files/all_operations_history_" + str(account_id) + ".csv", index=False)
+            sleep(1)
             all_operations_history_updated = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
 
             from_index = (len(all_operations_history_updated) - 1)
@@ -933,9 +932,11 @@ def save_operations_to_history(account_id):
         print("History not exist")
         if create_operations_history_file(account_id):
 
-
+            all_operations_history_df = pd.read_csv("files/all_operations_history_" + str(account_id) + ".csv")
             # choose max period for first time run
-            history_period = 20000
+            days =20000
+            now = datetime.now(tz=timezone('Europe/Moscow'))
+            history_period = now - timedelta(days=days)
             list_of_operations = [broker.get_operations_data(history_period)]
             list_of_operations = list_of_operations[0]
             print(type(list_of_operations))
@@ -1191,6 +1192,7 @@ def save_operations_to_history(account_id):
     else:
         print("Something wrong, check: portfolio_current_add_order ")
         return False
+
 
 class Account:
     """

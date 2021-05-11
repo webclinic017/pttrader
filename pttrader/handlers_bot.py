@@ -151,10 +151,10 @@ def ticker_data(update: Update, context: CallbackContext):
                 lot_size = data_symbol['lotSize']
                 exchange_status = "открыта"
                 text_response = (
-                            "последняя цена: " + str(current_ticker_price) + " " + currency +
-                            "\nинкремент цены: " + str(price_increment) +
-                            "\nразмер лота: " + str(lot_size) +
-                            "\nбиржа " + str(exchange_status))
+                        "последняя цена: " + str(current_ticker_price) + " " + currency +
+                        "\nинкремент цены: " + str(price_increment) +
+                        "\nразмер лота: " + str(lot_size) +
+                        "\nбиржа " + str(exchange_status))
                 context.bot.send_message(usr_chat_id, text_response)
 
             elif current_ticker_price[0]:
@@ -165,10 +165,10 @@ def ticker_data(update: Update, context: CallbackContext):
                     exchange_status = "открыта"
 
                     text_response = (
-                                "средняя цена последней минуты: " + str(current_ticker_price[1]) + " " + currency +
-                                "\nинкремент цены: " + str(price_increment) +
-                                "\nразмер лота: " + str(lot_size) +
-                                "\nбиржа " + str(exchange_status))
+                            "средняя цена последней минуты: " + str(current_ticker_price[1]) + " " + currency +
+                            "\nинкремент цены: " + str(price_increment) +
+                            "\nразмер лота: " + str(lot_size) +
+                            "\nбиржа " + str(exchange_status))
                     context.bot.send_message(usr_chat_id, text_response)
                 except Exception as e:
                     print(e)
@@ -452,6 +452,7 @@ def cancel_order(update: Update, context: CallbackContext):
         update.message.reply_text('Usage: /cancel <operation_id>'
                                   '\n Example: /cancel 123456')
 
+
 # commands for tinkoff API ank private key
 @run_async
 def operations_sync(update: Update, context: CallbackContext):
@@ -461,7 +462,7 @@ def operations_sync(update: Update, context: CallbackContext):
     :return: text
     """
     # when user sent /sync
-    #bot_utils.command_info(update)
+    # bot_utils.command_info(update)
     user_data = update.effective_user
     usr_chat_id = update.message.chat_id
 
@@ -481,21 +482,17 @@ def operations_sync(update: Update, context: CallbackContext):
             response = [trader.save_operations_to_history(usr_chat_id)]
             data = response[0]
             print(data)
-            if data[0] :
+            if data[0]:
                 all_operations_num = data[1]
                 from_date = data[2]
                 to_date = data[3]
-                text_response = "Обновлено: " + str(all_operations_num) + ", c " + str(from_date) + " по " +\
+                text_response = "Обновлено: " + str(all_operations_num) + ", c " + str(from_date) + " по " + \
                                 str(to_date)
 
                 context.bot.send_message(usr_chat_id, text_response)
             else:
-                all_operations_num = data[1]
-                from_date = data[2]
-                to_date = data[3]
 
-                text_response = "Обновлено: " + str(all_operations_num) + ", c " + str(from_date) + " по " +\
-                                str(to_date)
+                text_response = "Ошибка в обновлениии данных, смотри log"
 
                 context.bot.send_message(usr_chat_id, text_response)
 
@@ -509,8 +506,6 @@ def operations_sync(update: Update, context: CallbackContext):
     except Exception as e:
         print(e)
         update.message.reply_text("Использование: /sync")
-
-
 
 
 # bot's update error handler
