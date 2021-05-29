@@ -472,7 +472,9 @@ def operations_sync(update: Update, context: CallbackContext):
         # if database not exist, create new
 
         if user_data.username == "mikhashev":
+            text_response = "Обновляю данные, ожидайте..."
 
+            context.bot.send_message(usr_chat_id, text_response)
             # update wallet data from broker account
             trader.update_wallet(usr_chat_id)
             # update portfolio from broker data (update to current date every time)
@@ -481,7 +483,7 @@ def operations_sync(update: Update, context: CallbackContext):
             # if already exist history file, update from last to current date
             response = [trader.save_operations_to_history(usr_chat_id)]
             data = response[0]
-            print(data)
+            print("Response to user in telegram: ",data)
             if data[0]:
                 all_operations_num = data[1]
                 from_date = data[2]

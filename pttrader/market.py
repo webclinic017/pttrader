@@ -562,6 +562,8 @@ def get_sector_by_ticker(ticker) -> str:
         return sector
 
     except Exception as e:
-        print(e)
+
+
+        print("Exception in get sector by ticker",ticker , e)
         return sector
 

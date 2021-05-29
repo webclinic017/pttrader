@@ -985,10 +985,13 @@ def get_operations_data(history_period):
     now = datetime.now(tz=timezone('Europe/Moscow'))
 
     client = tinkof_api_auth()
-    ops = client.operations.operations_get(_from=history_period.isoformat(), to=now.isoformat())
-    operations_data = ops.payload
-
-    return operations_data.operations
+    try:
+        ops = client.operations.operations_get(_from=history_period, to=now.isoformat())
+        operations_data = ops.payload
+        #print("Operations_data before return:", operations_data)
+        return operations_data.operations
+    except Exception as e:
+        print(e)
 
 
 def get_portfolio_data(account_id) -> list:

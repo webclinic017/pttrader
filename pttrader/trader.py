@@ -562,33 +562,25 @@ def update_portfolio(account_id):
     deposit_money = float()
 
     # get current portfolio data from real broker
-    portfolio = broker.get_portfolio_data(account_id)
+    portfolio = [broker.get_portfolio_data(account_id)]
+    portfolio = portfolio[0]
+
     portfolio_current_df = pd.read_csv("files/portfolio_current_" + str(account_id) + ".csv")
 
     for open_position in portfolio:
 
-
-        figi = open_position.figi
-        # figi_to_ticker
-        ticker = market.get_ticker_by(figi)
-        # after obtain ticker by figi we try to get sector
-        sector = market.get_sector_by_ticker(ticker)
-        instrument_type = open_position.instrument_type
         balance = open_position.balance
-        lots = open_position.lots
         average_position_price = open_position.average_position_price.value
-        currency = open_position.average_position_price.currency
         total = average_position_price * balance
-
-
         deposit_money += total
         # blocked
         # expected_yield
 
     for open_position in portfolio:
+
         figi = open_position.figi
         # figi_to_ticker
-        ticker = market.get_ticker_by(figi)
+        ticker = open_position.ticker
         # after obtain ticker by figi we try to get sector
         sector = market.get_sector_by_ticker(ticker)
         instrument_type = open_position.instrument_type
@@ -596,14 +588,13 @@ def update_portfolio(account_id):
         lots = open_position.lots
         average_position_price = open_position.average_position_price.value
         currency = open_position.average_position_price.currency
-        total = average_position_price * balance
-        wallet_show_current(account_id)
+        total = round(average_position_price * balance, 2)
 
         wallet_current_data = wallet_show_current(account_id)
 
         balance_rub = wallet_current_data["RUB"]
 
-        weight = round((total / (deposit_money + balance_rub)) * 100,2)
+        weight = round((total / (deposit_money + balance_rub)) * 100, 2)
         # blocked
         # expected_yield
 
@@ -619,10 +610,6 @@ def update_portfolio(account_id):
 
 
                                                             }, ignore_index=True)
-
-
-
-
 
     portfolio_current_df.to_csv("files/portfolio_current_" + str(account_id) + ".csv", index=False)
 
@@ -672,11 +659,9 @@ def get_history_period_to_update(account_id):
 
     data = current_operations_history_data.head(1)
     last_date = (data["done_at"][0])
-    last_date = pd.datetime.fromisoformat(last_date)
+    last_date = datetime.fromisoformat(last_date)
+    print("now time: ", now)
     print("date from csv: ", last_date)
-
-    history_period_to_update = now - last_date
-
     return last_date
 
 
@@ -691,25 +676,24 @@ def save_operations_to_history(account_id):
     if is_all_operations_history_exist(account_id):
         print("History exist")
 
-        # TODO if file exist, check last date and updatewith function check_last . . .
-
-        history_period = get_history_period_to_update(account_id)  # TODO need to calculate
+        last_date = get_history_period_to_update(account_id)
         new_operations_history_df = pd.DataFrame(
             columns=["operation_id", "operation_type", "instrument_type", "ticker", "currency", "price",
                      "quantity", "payment", "commission", "created_at", "done_at"
                      ])
 
         # update
-        print("Hist period", history_period)
-        list_of_operations = [broker.get_operations_data(history_period)]
+        print("Hist period", last_date)
+        list_of_operations = [broker.get_operations_data(last_date)]
         list_of_operations = list_of_operations[0]
-        print(type(list_of_operations))
-        print(len(list_of_operations))
+        #print(type(list_of_operations))
+        #print(len(list_of_operations))
         count = 0
         for operation in list_of_operations:
-            sleep(.5)
+            sleep(.25)
             count += 1
-            print("Counter: ", count)
+            #print("Counter: ", count)
+
             operation_id = []
             operation_type = []  # Buy, Sell
             instrument_type = []  # Stock,
@@ -723,7 +707,7 @@ def save_operations_to_history(account_id):
             created_at = []
             done_at = []
             if operation.operation_type == 'Buy' and operation.status == "Done":
-                print(operation.operation_type)
+                #print(operation.operation_type)
 
                 operation_id.append(operation.id)
                 operation_type.append(operation.operation_type)
@@ -766,7 +750,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'Sell' and operation.status == "Done":
-                print(operation.operation_type)
+                #print(operation.operation_type)
 
                 operation_id.append(operation.id)
                 operation_type.append(operation.operation_type)
@@ -807,7 +791,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
             # dict_keys(['Sell', 'BrokerCommission', 'Buy', 'PayOut', 'PayIn', 'MarginCommission', 'Dividend', 'ServiceCommission'])
             elif operation.operation_type == 'Dividend':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 figi = operation.figi  # need to convert to ticker name
                 figi_data = client.market.market_search_by_figi_get(figi)
@@ -829,7 +813,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'ServiceCommission':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 currency.append(operation.currency)
                 operation_type.append(operation.operation_type)
@@ -847,7 +831,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'MarginCommission':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 currency.append(operation.currency)
                 operation_type.append(operation.operation_type)
@@ -865,7 +849,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'PayIn':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 currency.append(operation.currency)
                 operation_type.append(operation.operation_type)
@@ -883,7 +867,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'PayOut':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 currency.append(operation.currency)
                 operation_type.append(operation.operation_type)
@@ -901,7 +885,7 @@ def save_operations_to_history(account_id):
                                                                               }, ignore_index=True)
 
             elif operation.operation_type == 'BrokerCommission':
-                print(operation.operation_type)
+                #print(operation.operation_type)
                 operation_id.append(operation.id)
                 figi = operation.figi  # need to convert to ticker name
                 figi_data = client.market.market_search_by_figi_get(figi)
@@ -961,13 +945,14 @@ def save_operations_to_history(account_id):
             days = 20000
             now = datetime.now(tz=timezone('Europe/Moscow'))
             history_period = now - timedelta(days=days)
+            print("History first date: ", history_period)
             list_of_operations = [broker.get_operations_data(history_period)]
             list_of_operations = list_of_operations[0]
             print(type(list_of_operations))
             print(len(list_of_operations))
             count = 0
             for operation in list_of_operations:
-                sleep(.5)
+                sleep(.25)
                 count += 1
                 print("Counter: ", count)
 
